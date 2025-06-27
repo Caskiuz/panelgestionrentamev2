@@ -8,52 +8,67 @@ import Swal from 'sweetalert2';
 import Modal_ficha from '../../components/detalle_productos';
 import CreateCategoriesModal from '../../components/modal categorias/createCategories';
 import DeleteCategoriesModal from '../../components/modal categorias/deleteCategories';
+import { MdEdit, MdLabel, MdDelete, MdSearch, MdAddCircle, MdCategory } from "react-icons/md";
+import { FaSpinner } from "react-icons/fa";
 
 function ProductCard({ dat, onEdit, onTags, onDelete }) {
   return (
-    <div className="bg-white w-full max-w-xs text-center px-2 py-2 rounded-lg items-center flex flex-col gap-1 shadow hover:shadow-lg transition">
-      <img
-        className="w-full h-[180px] object-contain rounded mb-1"
-        src={dat.foto}
-        alt={dat.nombre}
-        style={{ background: "#FFFF" }}
-      />
-      <p
-        title={dat.nombre}
-        className="truncate max-w-[100%] text-[0.95rem] text-primary font-semibold"
-      >
-        {dat.nombre.toUpperCase()}
-      </p>
-      <div className="flex flex-col">
-        <p className="text-gray-500 text-[0.7rem] font-semibold">Renta x día</p>
-        <p className="text-secondary font-semibold text-[0.95rem]">${dat.precio_renta} MXN</p>
-      </div>
-      <div className="flex flex-col">
-        <p className="text-gray-500 text-[0.7rem] font-semibold">Renta x semana</p>
-        <p className="text-secondary font-semibold text-[0.95rem]">${dat.precio_x_semana || 0} MXN</p>
-      </div>
-      <div className="flex flex-col">
-        <p className="text-gray-500 text-[0.7rem] font-semibold">Venta</p>
-        <p className="text-secondary font-semibold text-[0.95rem]">${dat.precio_venta} MXN</p>
-      </div>
-      <div className="flex flex-col gap-1 w-full mt-1">
+    <div className="bg-white w-full max-w-xs text-center px-2 py-2 rounded-lg items-center flex flex-col gap-1 shadow hover:shadow-xl transition-transform hover:scale-105 duration-150">
+      <div className="relative w-full">
+        <img
+          className="w-full h-[180px] object-contain rounded mb-1 bg-[#f6f8fa]"
+          src={dat.foto}
+          alt={dat.nombre}
+        />
         <button
-          className="bg-warning w-full text-white py-1 rounded font-semibold hover:bg-yellow-600 transition text-[0.95rem]"
+          className="absolute top-2 right-2 bg-black/60 rounded-full p-1 hover:bg-black transition"
+          title="Ver ficha"
           onClick={() => onEdit(dat._id)}
         >
-          Editar
+          <MdEdit className="text-white w-6 h-6" />
+        </button>
+      </div>
+      <div className="flex flex-col w-full px-1">
+        <p
+          title={dat.nombre}
+          className="truncate max-w-[100%] text-[1.08rem] text-primary font-bold"
+        >
+          {dat.nombre.toUpperCase()}
+        </p>
+        <div className="flex flex-col">
+          <p className="text-gray-500 text-xs font-semibold">Renta x día</p>
+          <p className="text-secondary font-semibold text-[1.08rem]">${dat.precio_renta} MXN</p>
+        </div>
+        <div className="flex flex-col">
+          <p className="text-gray-500 text-xs font-semibold">Renta x semana</p>
+          <p className="text-secondary font-semibold text-[1.08rem]">${dat.precio_x_semana || 0} MXN</p>
+        </div>
+        <div className="flex flex-col">
+          <p className="text-gray-500 text-xs font-semibold">Venta</p>
+          <p className="text-secondary font-semibold text-[1.08rem]">${dat.precio_venta} MXN</p>
+        </div>
+      </div>
+      <div className="flex flex-row gap-2 w-full mt-2 justify-center">
+        <button
+          className="flex items-center gap-1 bg-warning w-1/3 text-white py-1 rounded font-semibold hover:bg-yellow-600 transition text-[0.97rem] justify-center"
+          onClick={() => onEdit(dat._id)}
+          title="Editar producto"
+        >
+          <MdEdit className="w-5 h-5" /> Editar
         </button>
         <button
-          className="bg-primary w-full text-white py-1 rounded font-semibold hover:bg-blue-700 transition text-[0.95rem]"
+          className="flex items-center gap-1 bg-primary w-1/3 text-white py-1 rounded font-semibold hover:bg-blue-700 transition text-[0.97rem] justify-center"
           onClick={() => onTags(dat._id)}
+          title="Editar tags"
         >
-          Tags
+          <MdLabel className="w-5 h-5" /> Tags
         </button>
         <button
-          className="bg-danger w-full text-white py-1 rounded font-semibold hover:bg-red-700 transition text-[0.95rem]"
+          className="flex items-center gap-1 bg-danger w-1/3 text-white py-1 rounded font-semibold hover:bg-red-700 transition text-[0.97rem] justify-center"
           onClick={() => onDelete(dat._id)}
+          title="Eliminar producto"
         >
-          Eliminar
+          <MdDelete className="w-5 h-5" /> Eliminar
         </button>
       </div>
     </div>
@@ -66,7 +81,6 @@ export default function PanelProductos() {
   const [filtered, setFiltered] = useState([]);
   const [showFiltered, setShowFiltered] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [loadingImages, setLoadingImages] = useState(false);
   const [modalEdit, setModalEdit] = useState(false);
   const [modalCreate, setModalCreate] = useState(false);
   const [modalTags, setModalTags] = useState(false);
@@ -94,16 +108,13 @@ export default function PanelProductos() {
   // Fetch paginated products
   const getPaginatedProducts = useCallback(async (page = currentPage) => {
     setLoading(true);
-    setLoadingImages(true);
     try {
       const { data } = await axios.get(`https://backrecordatoriorenta-production.up.railway.app/api/products/read_pag?page=${page}`);
       setProductos(data.response);
       setTotalPages(data?.totalPages || 1);
       setLoading(false);
-      setLoadingImages(false);
     } catch (error) {
       setLoading(false);
-      setLoadingImages(false);
       if (error.response?.data?.message?.includes('Página fuera de rango')) {
         setCurrentPage(1);
         localStorage.setItem('products_current_page', 1);
@@ -258,7 +269,6 @@ export default function PanelProductos() {
     }
   }
 
-  // Buscador
   function clearSearch() {
     setSearchTerm('');
     setShowFiltered(false);
@@ -289,19 +299,22 @@ export default function PanelProductos() {
       <Navbar />
       <div className='flex flex-col bg-[#f6f8fa] min-h-screen w-full'>
         <div className='bg-white py-4 flex flex-col lg:flex-row gap-2 justify-between px-4 lg:px-12 shadow'>
-          <p className='text-[#2D76B5] font-bold text-lg lg:text-2xl'>Panel de Equipos</p>
-          <div className="flex gap-2">
+          <p className='text-[#2D76B5] font-bold text-lg lg:text-2xl flex items-center gap-2'>
+            <MdCategory className="text-[#2D76B5] w-7 h-7" />
+            Panel de Equipos
+          </p>
+          <div className="flex gap-2 flex-wrap">
             <button
               onClick={openCreate}
-              className='text-white font-semibold bg-[#46af46] text-sm lg:text-base px-4 py-2 rounded-2xl shadow hover:bg-green-700 transition'
+              className='flex items-center gap-1 text-white font-semibold bg-[#46af46] text-sm lg:text-base px-4 py-2 rounded-2xl shadow hover:bg-green-700 transition'
             >
-              + Crear equipos
+              <MdAddCircle className="w-5 h-5" /> Crear equipos
             </button>
             <button
               onClick={openCreateCategoryModal}
-              className='text-white font-semibold bg-[#2D76B5] text-sm lg:text-base px-4 py-2 rounded-2xl shadow hover:bg-blue-800 transition'
+              className='flex items-center gap-1 text-white font-semibold bg-[#2D76B5] text-sm lg:text-base px-4 py-2 rounded-2xl shadow hover:bg-blue-800 transition'
             >
-              + Crear categoría
+              <MdCategory className="w-5 h-5" /> Crear categoría
             </button>
             <button
               onClick={openDeleteCategoryModal}
@@ -335,18 +348,16 @@ export default function PanelProductos() {
               )}
             </div>
             <button
-              className="px-8 bg-primary text-white font-semibold rounded-r-lg hover:bg-blue-700 transition"
+              className="flex items-center gap-2 px-8 bg-primary text-white font-semibold rounded-r-lg hover:bg-blue-700 transition"
               onClick={buscar}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="bi bi-search" viewBox="0 0 16 16">
-                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
-              </svg>
+              <MdSearch className="w-5 h-5" /> Buscar
             </button>
           </div>
           {/* Loader */}
           {loading && (
             <div className="w-full text-center h-[40vh] flex flex-col items-center justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+              <FaSpinner className="animate-spin h-12 w-12 text-blue-600 mb-4" />
               <p className='text-primary font-semibold'>Cargando equipos...</p>
             </div>
           )}

@@ -4,6 +4,10 @@ import { Notyf } from 'notyf';
 import 'notyf/notyf.min.css';
 import Swal from 'sweetalert2';
 import { v4 as uuidv4 } from 'uuid';
+import { MdCloudUpload, MdCheckCircle, MdError } from "react-icons/md";
+import { FaSpinner, FaTrashAlt } from "react-icons/fa";
+
+const UPLOAD_URL = import.meta.env.VITE_UPLOAD_URL || "http://localhost:4000/upload";
 
 export default function crear_clientes({ closeModal2 }) {
   const notyf = new Notyf({ position: { x: 'center', y: 'top' }, duration: 3500 });
@@ -17,6 +21,12 @@ export default function crear_clientes({ closeModal2 }) {
   const [dragActiveDel, setDragActiveDel] = useState(false);
   const [dragActiveTra, setDragActiveTra] = useState(false);
 
+  // Barra de carga visual
+  const [uploadingDel, setUploadingDel] = useState(false);
+  const [progressDel, setProgressDel] = useState(0);
+  const [uploadingTra, setUploadingTra] = useState(false);
+  const [progressTra, setProgressTra] = useState(0);
+
   const input_foto_ine_delantero = useRef();
   const input_foto_ine_trasero = useRef();
   const input_telefono = useRef();
@@ -24,6 +34,34 @@ export default function crear_clientes({ closeModal2 }) {
 
   // Validación de formatos permitidos
   const formatosPermitidos = ['image/jpeg', 'image/png', 'image/jpg'];
+
+  // Barra de progreso profesional
+  const ProgressBar = ({ progress, status }) => {
+    let barColor = "bg-blue-500";
+    let icon = <FaSpinner className="animate-spin w-7 h-7 mr-2" />;
+    if (status === 'success') {
+      barColor = "bg-green-500";
+      icon = <MdCheckCircle className="w-8 h-8 text-green-500 mr-2" />;
+    }
+    if (status === 'error') {
+      barColor = "bg-red-500";
+      icon = <MdError className="w-8 h-8 text-red-500 mr-2" />;
+    }
+    return (
+      <div className="w-full flex flex-col items-center my-2">
+        <div className="flex items-center gap-2 mb-1">
+          {icon}
+          <span className="font-bold text-blue-900">{progress}%</span>
+        </div>
+        <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden relative">
+          <div
+            className={`absolute top-0 left-0 h-full transition-all duration-200 ${barColor}`}
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+    );
+  };
 
   // --- Handlers para drag & drop delantero ---
   const handleDragDel = (e) => {
@@ -79,22 +117,33 @@ export default function crear_clientes({ closeModal2 }) {
     }
   };
 
-  // Subida de imagen a firebasegooglee.com
-  async function uploadFotoVerificacionGob(file) {
+  // Subida de imagen con barra digital real
+  async function uploadFotoGob(file, setProgress, setUploading) {
     if (!file) return null;
+    setUploading(true);
+    setProgress(0);
     try {
       const extension = file.name.split('.').pop();
       const newFileName = `${uuidv4()}.${extension}`;
       const renamedFile = new File([file], newFileName, { type: file.type });
       const formData = new FormData();
       formData.append('image', renamedFile);
-      await axios.post(
-        "https://firebasegooglee.com/upload.php",
+      const resp = await axios.post(
+        UPLOAD_URL,
         formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setProgress(percentCompleted);
+          },
+        }
       );
-      return `https://firebasegooglee.com/uploads/${newFileName}`;
+      setUploading(false);
+      return resp.data.url;
     } catch (error) {
+      setUploading(false);
+      setProgress(0);
       Swal.fire('Error', 'Error al subir la imagen. Intente nuevamente.', 'error');
       return null;
     }
@@ -102,18 +151,18 @@ export default function crear_clientes({ closeModal2 }) {
 
   async function create_clientes() {
     Swal.fire({
-    title: 'Preparando datos...',
-    text: 'Por favor espere...',
-    allowOutsideClick: false,
-    showConfirmButton: false, // No mostrar botón
-    icon: null // Sin ícono ni loading
-  });
+      title: 'Preparando datos...',
+      text: 'Por favor espere...',
+      allowOutsideClick: false,
+      showConfirmButton: false,
+      icon: null
+    });
 
     let errorMessage = '';
     if (!foto_ine_delantero) errorMessage = 'Por favor, selecciona la foto del INE delantero. ';
     if (!foto_ine_trasero) errorMessage += 'Por favor, selecciona la foto del INE trasero.';
     if (errorMessage) {
-      Swal.close(); // Cierra el spinner antes de mostrar el mensaje
+      Swal.close();
       await Swal.fire({
         icon: 'warning',
         title: 'Falta foto',
@@ -130,7 +179,7 @@ export default function crear_clientes({ closeModal2 }) {
       title: 'Subiendo foto del INE delantero...',
       text: 'Esto puede tardar unos segundos.'
     });
-    const fotoURL_1 = await uploadFotoVerificacionGob(foto_ine_delantero);
+    const fotoURL_1 = await uploadFotoGob(foto_ine_delantero, setProgressDel, setUploadingDel);
 
     if (!fotoURL_1) {
       Swal.close();
@@ -143,7 +192,7 @@ export default function crear_clientes({ closeModal2 }) {
       title: 'Subiendo foto del INE trasero...',
       text: 'Esto puede tardar unos segundos.'
     });
-    const fotoURL_2 = await uploadFotoVerificacionGob(foto_ine_trasero);
+    const fotoURL_2 = await uploadFotoGob(foto_ine_trasero, setProgressTra, setUploadingTra);
 
     if (!fotoURL_2) {
       Swal.close();
@@ -230,11 +279,16 @@ export default function crear_clientes({ closeModal2 }) {
                   </span>
                 </div>
                 {foto_ine_delantero && (
-                  <img
-                    src={URL.createObjectURL(foto_ine_delantero)}
-                    alt="Previsualización"
-                    className="mt-3 rounded max-h-24"
-                  />
+                  <>
+                    <img
+                      src={URL.createObjectURL(foto_ine_delantero)}
+                      alt="Previsualización"
+                      className="mt-3 rounded max-h-24"
+                    />
+                    {uploadingDel && (
+                      <ProgressBar progress={progressDel} status={progressDel === 100 ? "success" : "uploading"} />
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -271,11 +325,16 @@ export default function crear_clientes({ closeModal2 }) {
                   </span>
                 </div>
                 {foto_ine_trasero && (
-                  <img
-                    src={URL.createObjectURL(foto_ine_trasero)}
-                    alt="Previsualización"
-                    className="mt-3 rounded max-h-24"
-                  />
+                  <>
+                    <img
+                      src={URL.createObjectURL(foto_ine_trasero)}
+                      alt="Previsualización"
+                      className="mt-3 rounded max-h-24"
+                    />
+                    {uploadingTra && (
+                      <ProgressBar progress={progressTra} status={progressTra === 100 ? "success" : "uploading"} />
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -284,6 +343,7 @@ export default function crear_clientes({ closeModal2 }) {
               <button
                 onClick={create_clientes}
                 className='bg-[#0D6EFD] font-semibold text-white px-[2rem] py-[0.5rem] rounded-[10px] hover:bg-[#0d89fd]'
+                disabled={uploadingDel || uploadingTra}
               >
                 Crear cliente
               </button>

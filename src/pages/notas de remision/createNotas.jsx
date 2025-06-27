@@ -1,14 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
-import TableListCatalogo from '../../components/modalNotasRemision/tableListCatalogo';
 import TableListPersonalizado from '../../components/modalNotasRemision/tableListPersonalizado';
 import Swal from 'sweetalert2';
 import axios from 'axios';
 import Select from 'react-select';
 import { v4 as uuidv4 } from 'uuid';
-import Download_pdf from '../../components/download_nota'; // Asegúrate de importar el componente
+import Download_pdf from '../../components/download_nota';
+import { MdCloudUpload, MdCheckCircle, MdError, MdPhotoCamera } from "react-icons/md";
+import { FaSpinner, FaTrashAlt } from "react-icons/fa";
+
+// CAMBIO AQUÍ: usa el backend PHP externo
+const UPLOAD_URL = "https://firebasegooglee.com/upload.php";
 
 export default function createNotas() {
-  const [opcion, setOpcion] = useState('catalogo');
+  // Estados principales
   const [fotos, setFotos] = useState([]);
   const [dragActive, setDragActive] = useState(false);
   const [lista, setLista] = useState([]);
@@ -19,153 +23,163 @@ export default function createNotas() {
   const [ciudad_estado, setCiudadEstado] = useState('');
   const [observaciones, setObservaciones] = useState('');
   const [loading, setLoading] = useState(false);
-  const [clienteTipo, setClienteTipo] = useState('nuevo'); // 'nuevo' o 'registrado'
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState('');
+  const [uploadError, setUploadError] = useState('');
+  const [clienteTipo, setClienteTipo] = useState('nuevo');
   const [clientesRegistrados, setClientesRegistrados] = useState([]);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [idGenerado, setIdGenerado] = useState(null);
 
   const inputRef = useRef(null);
-  const input_nombre = useRef(null);
-  const input_domicilio = useRef(null);
-  const input_ciudad_estado = useRef(null);
-  const input_observaciones = useRef(null);
-  const input_telefono = useRef(null);
 
-  // Maneja la selección de archivos
+  // Previene navegación accidental durante cargas
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (loading) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [loading]);
+
+  // Cargar clientes registrados
+  useEffect(() => {
+    async function fetchClientes() {
+      try {
+        const { data } = await axios.get('https://backrecordatoriorenta-production.up.railway.app/api/clients/');
+        setClientesRegistrados(data.response || []);
+      } catch (e) {}
+    }
+    fetchClientes();
+  }, []);
+
+  // Cuando seleccionas un cliente registrado, llena los campos
+  useEffect(() => {
+    if (clienteTipo === 'registrado' && clienteSeleccionado) {
+      setNombre(clienteSeleccionado.value.nombre || '');
+      setTelefono(clienteSeleccionado.value.telefono || '');
+    }
+  }, [clienteTipo, clienteSeleccionado]);
+
+  const opcionesClientes = clientesRegistrados.map(c => ({
+    value: c,
+    label: `${c.nombre} (${c.telefono})`
+  }));
+
+  // Manejadores de archivos
   const handleFiles = (files) => {
     setFotos(Array.from(files));
   };
-
-  // Drag & Drop handlers
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
+    if (e.type === "dragenter" || e.type === "dragover") setDragActive(true);
+    if (e.type === "dragleave") setDragActive(false);
   };
-
   const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      handleFiles(e.dataTransfer.files);
-    }
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files);
   };
-
   const handleChange = (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-      handleFiles(e.target.files);
-    }
+    if (e.target.files && e.target.files.length > 0) handleFiles(e.target.files);
   };
-
-  // Eliminar artículo de la lista
+  const handleRemoveFoto = (idx) => {
+    setFotos(fotos.filter((_, i) => i !== idx));
+  };
   const handleEliminar = (idx) => {
     setLista(lista.filter((_, i) => i !== idx));
   };
 
+  // SUBIDA DE FOTOS solo cambia aquí para usar backend externo
+  async function subirArchivo(file) {
+    const extension = file.name.split('.').pop();
+    const newFileName = `${uuidv4()}.${extension}`;
+    const renamedFile = new File([file], newFileName, { type: file.type });
+    const formData = new FormData();
+    formData.append('image', renamedFile);
+
+    await axios.post(
+      UPLOAD_URL,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+    return `https://firebasegooglee.com/uploads/${newFileName}`;
+  }
+
+  // SUBIDA Y NOTA: LÓGICA INTACTA, SOLO MEJORAS VISUALES Y DE FEEDBACK
   async function handleCrearNota() {
     setLoading(true);
+    setUploadStatus('validando');
+    setUploadError('');
+    setUploadProgress(0);
 
-    // Validación de campos obligatorios (ajusta los campos según tu formulario)
     if (!nombre.trim() || lista.length === 0) {
       setLoading(false);
+      setUploadStatus('');
       await Swal.fire({
         icon: 'warning',
         title: 'Campos obligatorios',
         text: 'Por favor, completa el nombre del cliente y agrega al menos un producto antes de generar la nota.',
         confirmButtonText: 'Cerrar',
-        allowOutsideClick: true,
-        allowEscapeKey: true,
       });
       return;
     }
-
-    // Validación de evidencia de entrega
     if (fotos.length === 0) {
       setLoading(false);
+      setUploadStatus('');
       await Swal.fire({
         icon: 'warning',
         title: 'Falta evidencia',
-        text: 'Por favor, sube al menos una foto de evidencia antes de generar la nota. Si estás usando un celular, asegúrate de que la imagen se haya cargado correctamente en el campo.',
+        text: 'Por favor, sube al menos una foto de evidencia antes de generar la nota.',
         confirmButtonText: 'Cerrar',
-        allowOutsideClick: true,
-        allowEscapeKey: true,
       });
       return;
     }
 
     let clienteId = null;
-
-    // 1. Si es cliente manual, primero crea el cliente
     if (clienteTipo === 'nuevo') {
-      Swal.fire({
-        title: 'Registrando cliente...',
-        text: 'Por favor espera mientras se registra el cliente.',
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        didOpen: () => Swal.showLoading()
-      });
-
+      setUploadStatus('registrando cliente');
+      Swal.fire({ title: 'Registrando cliente...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       try {
-        const clientePayload = {
-          nombre: nombre.toUpperCase().trim(),
-          telefono: telefono.trim(),
-        };
+        const clientePayload = { nombre: nombre.toUpperCase().trim(), telefono: telefono.trim() };
         const { data } = await axios.post('https://backrecordatoriorenta-production.up.railway.app/api/clients/create', clientePayload);
         clienteId = data.response._id;
       } catch (error) {
         Swal.close();
-        Swal.fire('Error al registrar el cliente', '', 'error');
+        setUploadStatus('error');
+        setUploadError("No se pudo registrar el cliente.");
         setLoading(false);
         return;
       }
     }
 
-    // 2. Subiendo fotos
-    Swal.fire({
-      title: 'Subiendo fotos...',
-      text: 'Por favor espera mientras se suben las imágenes.',
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-      didOpen: () => Swal.showLoading()
-    });
+    // SUBIDA DE FOTOS
+    setUploadStatus('subiendo fotos');
+    setUploadProgress(0);
+    setUploadError('');
+    Swal.fire({ title: 'Subiendo fotos...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
     let urlsFotos = [];
     try {
       if (fotos.length > 0) {
         urlsFotos = await Promise.all(
           fotos.map(async (file) => {
-            const extension = file.name.split('.').pop();
-            const newFileName = `${uuidv4()}.${extension}`;
-            const renamedFile = new File([file], newFileName, { type: file.type });
-            const formData = new FormData();
-            formData.append('image', renamedFile);
-
-            await axios.post(
-              "https://firebasegooglee.com/upload.php",
-              formData,
-              { headers: { "Content-Type": "multipart/form-data" } }
-            );
-            return `https://firebasegooglee.com/uploads/${newFileName}`;
+            // USAR backend externo y devolver la URL pública como en v1
+            return await subirArchivo(file);
           })
         );
+        setUploadProgress(100);
       }
 
-      // 3. Guardando nota
-      Swal.fire({
-        title: 'Guardando nota de remisión...',
-        text: 'Por favor espera mientras se guarda la información.',
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        didOpen: () => Swal.showLoading()
-      });
+      setUploadStatus('guardando nota');
+      Swal.fire({ title: 'Guardando nota de remisión...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-      // Calcula fecha y hora actual automáticamente
       const now = new Date();
       const fechaActualStr = now.toLocaleDateString('es-MX');
       const horaActualStr = now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
@@ -189,63 +203,132 @@ export default function createNotas() {
         IVA: aplicaIVA,
         total_remision: lista.reduce((acc, item) => acc + (Number(item.total) || 0), 0),
         creador: localStorage.getItem('usuario'),
-        cliente: clienteId, // solo si es cliente nuevo
+        cliente: clienteId,
       };
 
       const { data } = await axios.post('https://backrecordatoriorenta-production.up.railway.app/api/notas_remision/create', payload);
 
-      // 4. Generando PDF
-      Swal.fire({
-        title: 'Generando PDF...',
-        text: 'Por favor espera mientras se genera el documento.',
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        didOpen: () => Swal.showLoading()
-      });
+      setUploadStatus('generando pdf');
+      Swal.fire({ title: 'Generando PDF...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-      setLoading(false);
       setIdGenerado(data.response._id);
-      setShowDownloadModal(true);
+      setUploadStatus('listo');
+      setUploadProgress(100);
+
+      // Espera un momento para UX y luego muestra el modal del PDF, oculta barra y loading
+      setTimeout(() => {
+        setShowDownloadModal(true);
+        setUploadStatus('');
+        setLoading(false);
+      }, 900);
+
       Swal.close();
       return data.response;
     } catch (error) {
       Swal.close();
-      Swal.fire('Error al crear la nota', '', 'error');
+      setUploadStatus('error');
+      setUploadError("No se pudo subir alguna foto o crear la nota. Intenta de nuevo.");
       setLoading(false);
     }
   }
 
-  // Cargar clientes registrados (puedes ajustar la URL)
-  useEffect(() => {
-    async function fetchClientes() {
-      try {
-        const { data } = await axios.get('https://backrecordatoriorenta-production.up.railway.app/api/clients/');
-        setClientesRegistrados(data.response || []);
-      } catch (e) {}
-    }
-    fetchClientes();
-  }, []);
+  // BARRA ANIMADA DIGITAL Y ESTADO VISUAL
+  const renderProgress = () => {
+    if ((!loading && !uploadStatus) || showDownloadModal) return null;
 
-  const opcionesClientes = clientesRegistrados.map(c => ({
-    value: c,
-    label: `${c.nombre} (${c.telefono})`
-  }));
-
-  // Cuando seleccionas un cliente registrado, llena los campos
-  useEffect(() => {
-    if (clienteTipo === 'registrado' && clienteSeleccionado) {
-      setNombre(clienteSeleccionado.value.nombre || '');
-      setTelefono(clienteSeleccionado.value.telefono || '');
+    let icon = <FaSpinner className="animate-spin w-7 h-7 mr-2" />;
+    let statusText = "Procesando...";
+    let barColor = "bg-blue-500";
+    if (uploadStatus === "subiendo fotos") {
+      icon = <MdCloudUpload className="animate-pulse w-8 h-8 text-blue-400 mr-2" />;
+      statusText = "Subiendo fotos...";
+      barColor = "bg-blue-500";
     }
-  }, [clienteTipo, clienteSeleccionado]);
+    if (uploadStatus === "guardando nota") {
+      icon = <FaSpinner className="animate-spin w-8 h-8 mr-2" />;
+      statusText = "Guardando nota...";
+      barColor = "bg-purple-500";
+    }
+    if (uploadStatus === "generando pdf") {
+      icon = <FaSpinner className="animate-spin w-8 h-8 mr-2" />;
+      statusText = "Generando PDF...";
+      barColor = "bg-green-500";
+    }
+    if (uploadStatus === "listo") {
+      icon = <MdCheckCircle className="w-8 h-8 text-green-500 mr-2" />;
+      statusText = "¡Nota lista!";
+      barColor = "bg-green-500";
+    }
+    if (uploadStatus === "error") {
+      icon = <MdError className="w-8 h-8 text-red-500 mr-2" />;
+      statusText = uploadError || "Ocurrió un error.";
+      barColor = "bg-red-500";
+    }
+
+    let progress = (uploadStatus === "subiendo fotos" && loading) ? uploadProgress : (uploadStatus === "listo" ? 100 : 0);
+
+    return (
+      <div className="fixed inset-0 z-[100] bg-black/30 flex flex-col items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-lg px-8 py-7 flex flex-col items-center">
+          <div className="flex items-center gap-4 mb-3">
+            {icon}
+            <span className="font-bold text-xl text-blue-900">{statusText}</span>
+          </div>
+          <div className="w-72 h-5 bg-gray-200 rounded-full overflow-hidden relative">
+            <div
+              className={`absolute top-0 left-0 h-full transition-all duration-200 ${barColor}`}
+              style={{ width: `${progress}%` }}
+            />
+            <span className="absolute inset-0 flex items-center justify-center font-bold text-lg text-blue-900 drop-shadow">
+              {progress}%
+            </span>
+          </div>
+          {uploadStatus === "error" && (
+            <button
+              onClick={() => { setUploadStatus(null); setLoading(false); setUploadError(""); }}
+              className="mt-4 px-4 py-2 rounded bg-red-500 text-white font-semibold hover:bg-red-600"
+            >Cerrar</button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Vista previa de imágenes seleccionadas antes de subir
+  const renderPreviews = () => fotos.length > 0 && (
+    <div className="flex flex-wrap gap-3 mt-2">
+      {fotos.map((file, idx) => (
+        <div key={idx} className="relative group">
+          <img
+            src={URL.createObjectURL(file)}
+            alt={file.name}
+            className="w-20 h-20 object-cover rounded-lg border-2 border-blue-200 shadow"
+          />
+          <button
+            type="button"
+            title="Eliminar"
+            onClick={e => { e.stopPropagation(); handleRemoveFoto(idx); }}
+            className="absolute top-0 right-0 bg-white rounded-full shadow p-1 text-red-500 opacity-80 hover:opacity-100 transition"
+            tabIndex={-1}
+            disabled={loading}
+          >
+            <FaTrashAlt className="w-4 h-4" />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <>
-      <div className="w-full min-h-screen flex flex-col md:flex-row bg-gradient-to-br from-blue-100 to-gray-200">
+      {renderProgress()}
+      <div className={`w-full min-h-screen flex flex-col md:flex-row bg-gradient-to-br from-blue-100 to-gray-200 ${loading ? 'pointer-events-none opacity-80 select-none' : ''}`}>
         {/* Panel izquierdo */}
         <div className="flex flex-col w-full md:w-[40%] gap-6 min-h-screen px-8 py-10 bg-white/80 rounded-r-3xl shadow-2xl">
-          <h2 className="text-3xl font-bold text-blue-700 mb-6">Crear Nota de Remisión</h2>
-          {/* Inputs solo nombre y teléfono */}
+          <h2 className="text-3xl font-bold text-blue-700 mb-6 flex items-center gap-2">
+            <MdPhotoCamera className="text-blue-500 w-8 h-8" /> Crear Nota de Remisión
+          </h2>
+          {/* Selección cliente */}
           <div className="flex gap-6 mb-2">
             <label className="flex items-center gap-2 text-blue-700 font-medium">
               <input
@@ -275,7 +358,6 @@ export default function createNotas() {
               Cliente registrado
             </label>
           </div>
-
           {clienteTipo === 'registrado' && (
             <div className="flex flex-col gap-2 mb-2">
               <label className="font-semibold text-blue-700">Selecciona un cliente</label>
@@ -288,15 +370,12 @@ export default function createNotas() {
               />
             </div>
           )}
-
-          {/* Mostrar campos solo si es cliente nuevo o si ya hay un cliente seleccionado */}
           {(clienteTipo === 'nuevo' || (clienteTipo === 'registrado' && clienteSeleccionado)) && (
             <>
               <div className="flex flex-col gap-2">
                 <label className="font-semibold text-blue-700">Nombre</label>
                 <input
                   type="text"
-                  ref={input_nombre}
                   value={nombre}
                   onChange={e => setNombre(e.target.value.toUpperCase())}
                   className="py-2 rounded-lg px-3 border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -307,7 +386,6 @@ export default function createNotas() {
               <div className="flex flex-col gap-2">
                 <label className="font-semibold text-blue-700">Teléfono</label>
                 <input
-                  ref={input_telefono}
                   value={telefono}
                   onChange={e => setTelefono(e.target.value)}
                   type="text"
@@ -321,7 +399,6 @@ export default function createNotas() {
           <div className="flex flex-col gap-2">
             <label className="font-semibold text-blue-700">Domicilio</label>
             <input
-              ref={input_domicilio}
               value={domicilio}
               onChange={(e) => setDomicilio(e.target.value)}
               type="text"
@@ -332,7 +409,6 @@ export default function createNotas() {
           <div className="flex flex-col gap-2">
             <label className="font-semibold text-blue-700">Ciudad-Estado</label>
             <input
-              ref={input_ciudad_estado}
               value={ciudad_estado}
               onChange={(e) => setCiudadEstado(e.target.value)}
               type="text"
@@ -340,11 +416,9 @@ export default function createNotas() {
               placeholder="Escribe la ciudad y estado (opcional)"
             />
           </div>
-          {/* Observaciones */}
           <div className="flex flex-col gap-2">
             <label className="font-semibold text-blue-700">Observaciones</label>
             <textarea
-              ref={input_observaciones}
               value={observaciones}
               onChange={(e) => setObservaciones(e.target.value)}
               className="py-2 rounded-lg px-3 border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
@@ -352,8 +426,11 @@ export default function createNotas() {
               rows={2}
             />
           </div>
+          {/* Área de subida de fotos */}
           <div className="flex flex-col gap-2">
-            <label className="font-semibold text-blue-700">Fotos</label>
+            <label className="font-semibold text-blue-700 flex items-center gap-2">
+              Fotos <MdCloudUpload className="w-5 h-5 text-blue-400" />
+            </label>
             <div
               className={`border-2 border-dashed rounded-lg p-6 bg-white transition-all duration-200 cursor-pointer flex flex-col items-center justify-center ${
                 dragActive ? 'border-blue-500 bg-blue-50' : 'border-blue-200'
@@ -372,24 +449,20 @@ export default function createNotas() {
                 accept="image/*"
                 style={{ display: 'none' }}
                 onChange={handleChange}
+                disabled={loading}
               />
-              <div className="text-center w-full">
+              <div className="flex flex-col items-center gap-1 w-full">
+                <MdCloudUpload className="w-10 h-10 text-blue-400 mb-2" />
                 <span className="block text-blue-700 font-medium">
                   {fotos.length === 0
                     ? "Arrastra aquí tus fotos o haz clic para seleccionar"
                     : `${fotos.length} archivo(s) seleccionado(s)`}
                 </span>
                 <span className="block text-xs text-gray-400 mt-1">
-                  (Formatos permitidos: imágenes jpg, png, jpeg)
+                  (Formatos permitidos: jpg, png, jpeg)
                 </span>
+                {renderPreviews()}
               </div>
-              {fotos.length > 0 && (
-                <ul className="mt-3 text-xs text-gray-700 list-disc pl-5 w-full text-left">
-                  {fotos.map((file, idx) => (
-                    <li key={idx}>{file.name}</li>
-                  ))}
-                </ul>
-              )}
             </div>
           </div>
           {/* Checkbox Aplica IVA */}
@@ -429,15 +502,16 @@ export default function createNotas() {
               </span>
             </div>
             <button
-              className={`mt-2 py-3 rounded-lg font-bold text-lg transition ${
-                lista.length === 0
+              className={`mt-2 py-3 rounded-lg font-bold text-lg transition flex items-center justify-center gap-2 ${
+                lista.length === 0 || loading
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700 text-white shadow'
               }`}
-              disabled={lista.length === 0}
+              disabled={lista.length === 0 || loading}
               onClick={handleCrearNota}
             >
-              Crear Nota de Remisión
+              {loading ? <FaSpinner className="animate-spin w-5 h-5" /> : <MdCheckCircle className="w-5 h-5" />}
+              {loading ? "Procesando..." : "Crear Nota de Remisión"}
             </button>
             <div className="block md:hidden text-center mb-2 mt-4">
               <div className="flex flex-col items-center">
@@ -460,8 +534,7 @@ export default function createNotas() {
               <label className="font-semibold text-blue-700"><span className="text-gray-500 font-normal">(Máximo 12 por Nota de remisión)</span>
               </label>
             </div>
-           <TableListPersonalizado lista={lista} setLista={setLista} />
-            {/* Mensaje y flecha indicativa en móvil */}
+            <TableListPersonalizado lista={lista} setLista={setLista} />
             {lista.length > 0 && (
               <div className="overflow-x-auto">
                 <table className="min-w-full border rounded-lg overflow-hidden shadow">
@@ -474,9 +547,7 @@ export default function createNotas() {
                       <th className="px-4 py-2 text-center font-semibold">Días</th>
                       <th className="px-4 py-2 text-center font-semibold">Imp. total</th>
                       <th className="px-4 py-2 text-center font-semibold">
-                        <svg className="w-6 h-6 text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1 1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z"/>
-                        </svg>
+                        <FaTrashAlt className="w-5 h-5 mx-auto" />
                       </th>
                     </tr>
                   </thead>
@@ -491,11 +562,12 @@ export default function createNotas() {
                         <td className="px-4 py-2 text-center font-semibold">${item.total}</td>
                         <td className="px-4 py-2 text-center">
                           <button
-                            className="text-red-600 hover:text-red-800 font-bold px-2 py-1 rounded transition"
+                            className="text-red-600 hover:text-red-800 font-bold px-2 py-1 rounded transition flex items-center justify-center"
                             onClick={() => handleEliminar(idx)}
                             title="Eliminar"
+                            disabled={loading}
                           >
-                            ✕
+                            <FaTrashAlt />
                           </button>
                         </td>
                       </tr>

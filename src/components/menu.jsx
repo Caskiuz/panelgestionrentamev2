@@ -2,30 +2,23 @@ import React, { useEffect, useState } from 'react';
 import logo from '../images/logo_blanco.png';
 import icon_user from '../images/icon_user.png';
 import box from '../images/box.png';
-// Asegúrate de importar Link y useLocation para la navegación y el estado activo
 import { Link, useLocation } from 'react-router-dom';
-// Íconos de Lucide React para CobroGest y otros
-import { LayoutDashboard } from 'lucide-react'; // Para el enlace de CobroGest
-import { useAuthAndMetrics } from '../context/AuthAndMetricsContext'; // ¡NUEVA IMPORTACIÓN!
+import { LayoutDashboard } from 'lucide-react';
+import { useAuthAndMetrics } from '../context/AuthAndMetricsContext';
 
 export default function Menu({closeMenu}) {
-  const { userData, isLoading } = useAuthAndMetrics(); // ¡OBTENEMOS LOS DATOS DEL CONTEXTO!
+  const { userData, isLoading } = useAuthAndMetrics();
   const [modal_usuarios, setModal_usuarios] = useState(false);
   const [modal_productos, setModal_productos] = useState(false);
   const [modal_rentas, setModal_rentas] = useState(false);
   const [modal_clientes, setModal_clientes] = useState(false);
-  const location = useLocation(); // Para resaltar el enlace activo
+  const location = useLocation();
 
-  const toggleListVisibility = () => {setModal_usuarios(prev => !prev);};
-  const toggleListVisibility2 = () => {setModal_productos(prev => !prev);};
-  const toggleListVisibility3 = () => {setModal_rentas(prev => !prev);};
-  const toggleListVisibility4 = () => {setModal_clientes(prev => !prev);}; // Este es el de Notas de Remisión
+  const toggleListVisibility = () => setModal_usuarios(prev => !prev);
+  const toggleListVisibility2 = () => setModal_productos(prev => !prev);
+  const toggleListVisibility3 = () => setModal_rentas(prev => !prev);
+  const toggleListVisibility4 = () => setModal_clientes(prev => !prev);
 
-  // Eliminamos el useEffect y la función 'get', los datos vienen del contexto
-  // async function get() { ... }
-  // useEffect(() => { get(); }, []);
-
-  // Si los datos están cargando, puedes mostrar un spinner o un estado vacío del menú
   if (isLoading) {
     return (
       <div className="absolute z-50 top-0 left-0 bg-[#323B75] pr-3 w-[80%] lg:w-auto h-screen flex flex-col shadow-2xl rounded-r-2xl justify-center items-center text-white">
@@ -34,7 +27,6 @@ export default function Menu({closeMenu}) {
     );
   }
 
-  // Si no hay userData, podrías mostrar un menú simplificado o redirigir
   if (!userData) {
     return (
       <div className="absolute z-50 top-0 left-0 bg-[#323B75] pr-3 w-[80%] lg:w-auto h-screen flex flex-col shadow-2xl rounded-r-2xl justify-center items-center text-white">
@@ -44,11 +36,9 @@ export default function Menu({closeMenu}) {
   }
 
   return (
-    // Ya no mapeamos 'datas', usamos 'userData' directamente
     <div key={userData._id || userData.id || 'default-menu-key'} className="absolute z-50 top-0 left-0 bg-[#323B75] pr-3 w-[80%] lg:w-auto h-screen flex flex-col shadow-2xl rounded-r-2xl">
-      {/* Header */}
       <div className="w-full flex items-center bg-[#323B75] justify-between border-b border-white/20 h-[4.5rem] px-4">
-        <Link to="/Homepage" onClick={closeMenu}> {/* Usar Link para navegación interna */}
+        <Link to="/Homepage" onClick={closeMenu}>
           <img className="w-20" src={logo} alt="Logo" />
         </Link>
         <button onClick={closeMenu} className="hover:bg-white/10 rounded-full p-1 transition">
@@ -57,10 +47,7 @@ export default function Menu({closeMenu}) {
           </svg>
         </button>
       </div>
-
-      {/* Opciones del menú */}
       <nav className="flex-1 flex flex-col gap-2 py-4 overflow-y-auto">
-        {/* Usuarios (visible solo para rol 1) */}
         {userData.rol === 1 && (
           <Link to="/users_panel" onClick={closeMenu}
             className={`flex items-center gap-3 text-white px-3 py-3 rounded-lg transition font-medium mx-2 ${
@@ -70,7 +57,6 @@ export default function Menu({closeMenu}) {
             Crear / editar usuarios
           </Link>
         )}
-        {/* Clientes */}
         <Link to="/clients_panel" onClick={closeMenu}
           className={`flex items-center gap-3 text-white px-3 py-3 rounded-lg transition font-medium mx-2 ${
             location.pathname.startsWith('/clients_panel') ? 'bg-blue-800' : 'hover:bg-blue-800 bg-gray-800'
@@ -80,7 +66,6 @@ export default function Menu({closeMenu}) {
           </svg>
           Crear / editar clientes
         </Link>
-        {/* Equipos */}
         {userData.rol === 1 && (
           <Link to="/products_panel" onClick={closeMenu}
             className={`flex items-center gap-3 text-white px-3 py-3 rounded-lg transition font-medium mx-2 ${
@@ -90,7 +75,6 @@ export default function Menu({closeMenu}) {
             Crear / editar equipos
           </Link>
         )}
-        {/* Lista de equipos para rol 2 */}
         {userData.rol === 2 && (
           <Link to="/product_list" onClick={closeMenu}
             className={`flex items-center gap-3 text-white px-3 py-3 rounded-lg transition font-medium mx-2 ${
@@ -100,12 +84,10 @@ export default function Menu({closeMenu}) {
             Lista de equipos
           </Link>
         )}
-
-        {/* Notas de Remisión (con submenú) */}
         <div className="mx-2">
           <button
             onClick={toggleListVisibility4}
-            className="w-full flex justify-between items-center px-3 py-3 rounded-lg gap-3 text-white hover:bg-blue-800 transition font-medium focus:outline-none bg-gray-800" // Añadido bg-gray-800
+            className="w-full flex justify-between items-center px-3 py-3 rounded-lg gap-3 text-white hover:bg-blue-800 transition font-medium focus:outline-none bg-gray-800"
             type="button"
           >
             <span className="flex items-center gap-3">
@@ -119,7 +101,6 @@ export default function Menu({closeMenu}) {
               <path stroke="currentColor" strokeLinecap="round" strokeWidth="2" d="M5 7h14M5 12h14M5 17h14"/>
             </svg>
           </button>
-          {/* Submenú notas de remisión */}
           <div className={`overflow-hidden transition-all duration-500 ease-in-out bg-blue-900/80 rounded-b-lg shadow-lg ${modal_clientes ? 'max-h-40 py-2' : 'max-h-0 py-0'}`}>
             <ul className="flex flex-col gap-2 px-6">
               <Link to="/create_notas_rentas" onClick={closeMenu}>
@@ -134,23 +115,19 @@ export default function Menu({closeMenu}) {
             </ul>
           </div>
         </div>
-
-        {/* ¡¡¡ NUEVO ENLACE PARA COBROGEST !!! */}
-        <Link to="/cobrogest/dashboard" onClick={closeMenu}
-          className={`flex items-center gap-3 text-white px-3 py-3 rounded-lg transition font-medium mx-2 ${
-            location.pathname.startsWith('/cobrogest/dashboard') ? 'bg-blue-800' : 'hover:bg-blue-800 bg-gray-800'
-          }`}>
-          <LayoutDashboard className="w-8 h-8" /> {/* Asegúrate de importar LayoutDashboard de 'lucide-react' */}
-          CobroGest
-        </Link>
-
+        {/* SOLO ADMINISTRADOR */}
+        {userData.rol === 1 && (
+          <Link to="/cobrogest/dashboard" onClick={closeMenu}
+            className={`flex items-center gap-3 text-white px-3 py-3 rounded-lg transition font-medium mx-2 ${
+              location.pathname.startsWith('/cobrogest/dashboard') ? 'bg-blue-800' : 'hover:bg-blue-800 bg-gray-800'
+            }`}>
+            <LayoutDashboard className="w-8 h-8" />
+            CobroGest
+          </Link>
+        )}
       </nav>
-      {/* Puedes añadir la sección de usuario y logout aquí si la tenía el Menu original
-          En tu código anterior, estaba al final del div mapeado, así que lo muevo aquí
-          para que siempre aparezca al final del sidebar. */}
       <div className="mt-8 pt-4 border-t border-white/20">
         <div className="flex items-center mb-4 mx-2">
-          {/* Muestra el nombre y la foto del usuario del contexto */}
           {userData.foto ? (
             <img className='w-10 h-10 rounded-full mr-3' src={userData.foto} alt="Foto de perfil"/>
           ) : (
@@ -160,8 +137,6 @@ export default function Menu({closeMenu}) {
           )}
           <span className="text-gray-100 font-medium">{userData.nombre}</span>
         </div>
-        {/* Este botón de logout ya no llama a LogOut directamente, sino a un enlace o una función global */}
-        {/* Si LogOut es una función pasada como prop o global, puedes llamarla aquí */}
         <Link to="#" onClick={() => { localStorage.removeItem('token'); localStorage.removeItem('usuario'); window.location.href = `${window.location.origin}/`; }}
           className="flex items-center w-full p-3 rounded-lg text-gray-300 bg-gray-800 hover:bg-red-700 hover:text-white transition duration-200 ease-in-out mx-2">
           <svg className="w-6 h-6 mr-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
