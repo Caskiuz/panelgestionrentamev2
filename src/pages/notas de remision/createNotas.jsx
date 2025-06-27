@@ -8,7 +8,6 @@ import Download_pdf from '../../components/download_nota';
 import { MdCloudUpload, MdCheckCircle, MdError, MdPhotoCamera } from "react-icons/md";
 import { FaSpinner, FaTrashAlt } from "react-icons/fa";
 
-// CAMBIO AQUÍ: usa el backend PHP externo
 const UPLOAD_URL = "https://firebasegooglee.com/upload.php";
 
 export default function createNotas() {
@@ -110,9 +109,7 @@ export default function createNotas() {
       { headers: { "Content-Type": "multipart/form-data" } }
     );
     return `https://firebasegooglee.com/uploads/${newFileName}`;
-  }
-
-  // SUBIDA Y NOTA: LÓGICA INTACTA, SOLO MEJORAS VISUALES Y DE FEEDBACK
+  }  // SUBIDA Y NOTA: LÓGICA INTACTA, SOLO MEJORAS VISUALES Y DE FEEDBACK
   async function handleCrearNota() {
     setLoading(true);
     setUploadStatus('validando');
@@ -317,9 +314,7 @@ export default function createNotas() {
         </div>
       ))}
     </div>
-  );
-
-  return (
+  );  return (
     <>
       {renderProgress()}
       <div className={`w-full min-h-screen flex flex-col md:flex-row bg-gradient-to-br from-blue-100 to-gray-200 ${loading ? 'pointer-events-none opacity-80 select-none' : ''}`}>

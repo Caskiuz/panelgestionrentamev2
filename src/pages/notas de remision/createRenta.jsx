@@ -12,7 +12,6 @@ import Download_pdf from '../../components/download_pdf';
 import { MdCloudUpload, MdCheckCircle, MdError } from "react-icons/md";
 import { FaSpinner, FaTrashAlt } from "react-icons/fa";
 
-// CAMBIO AQUÍ: usa el backend PHP externo
 const UPLOAD_URL = "https://firebasegooglee.com/upload.php";
 
 export default function createRenta() {
@@ -46,7 +45,6 @@ export default function createRenta() {
   const ineDelanteraInputRef = useRef(null);
   const ineTraseraInputRef = useRef(null);
 
-  // Barra de progreso para cada upload
   const [uploadingIneDelantera, setUploadingIneDelantera] = useState(false);
   const [uploadProgressIneDelantera, setUploadProgressIneDelantera] = useState(0);
   const [uploadingIneTrasera, setUploadingIneTrasera] = useState(false);
@@ -54,7 +52,6 @@ export default function createRenta() {
   const [uploadingEvidence, setUploadingEvidence] = useState(false);
   const [uploadProgressEvidence, setUploadProgressEvidence] = useState(0);
 
-  // Barra de progreso animada y profesional
   const ProgressBar = ({ progress, status }) => {
     let barColor = "bg-blue-500";
     let icon = <FaSpinner className="animate-spin w-7 h-7 mr-2" />;
@@ -82,7 +79,6 @@ export default function createRenta() {
     );
   };
 
-  // Vista previa de imágenes para INE y evidencia
   const renderPreview = (file) =>
     file ? (
       <img
@@ -135,7 +131,6 @@ export default function createRenta() {
     setLista(lista.filter((_, i) => i !== idx));
   };
 
-  // SUBIDA DE FOTOS solo cambia aquí para usar backend externo
   async function subirArchivo(file) {
     const extension = file.name.split('.').pop();
     const newFileName = `${uuidv4()}.${extension}`;
@@ -149,161 +144,11 @@ export default function createRenta() {
       { headers: { "Content-Type": "multipart/form-data" } }
     );
     return `https://firebasegooglee.com/uploads/${newFileName}`;
-  }import React, { useState, useRef, useEffect } from 'react';
-import DatePicker, { registerLocale } from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
-import es from 'date-fns/locale/es';
-registerLocale('es', es);
-import TableListCatalogo from '../../components/modalNotasRemision/tableListCatalogo';
-import Swal from 'sweetalert2';
-import axios from 'axios';
-import Select from 'react-select';
-import { v4 as uuidv4 } from 'uuid';
-import Download_pdf from '../../components/download_pdf';
-import { MdCloudUpload, MdCheckCircle, MdError } from "react-icons/md";
-import { FaSpinner, FaTrashAlt } from "react-icons/fa";
-
-// CAMBIO AQUÍ: usa el backend PHP externo
-const UPLOAD_URL = "https://firebasegooglee.com/upload.php";
-
-export default function createRenta() {
-  const [fotos, setFotos] = useState([]);
-  const [dragActive, setDragActive] = useState(false);
-  const [lista, setLista] = useState([]);
-  const [clientesRegistrados, setClientesRegistrados] = useState([]);
-  const [aplicaIVA, setAplicaIVA] = useState(false);
-  const [nombre, setNombre] = useState('');
-  const [domicilio, setDomicilio] = useState('');
-  const [telefono, setTelefono] = useState('');
-  const [observaciones, setObservaciones] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [clienteTipo, setClienteTipo] = useState('nuevo');
-  const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
-  const [fotoIneDelantera, setFotoIneDelantera] = useState(null);
-  const [fotoIneTrasera, setFotoIneTrasera] = useState(null);
-  const [fechaRenta, setFechaRenta] = useState(null);
-  const [fechaVencimiento, setFechaVencimiento] = useState(null);
-  const [hora12, setHora12] = useState('12');
-  const [minuto, setMinuto] = useState('00');
-  const [ampm, setAmpm] = useState('AM');
-  const [showDownloadModal, setShowDownloadModal] = useState(false);
-  const [idGenerado, setIdGenerado] = useState(null);
-
-  const inputRef = useRef(null);
-  const input_nombre = useRef(null);
-  const input_domicilio = useRef(null);
-  const input_observaciones = useRef(null);
-  const input_telefono = useRef(null);
-  const ineDelanteraInputRef = useRef(null);
-  const ineTraseraInputRef = useRef(null);
-
-  // Barra de progreso para cada upload
-  const [uploadingIneDelantera, setUploadingIneDelantera] = useState(false);
-  const [uploadProgressIneDelantera, setUploadProgressIneDelantera] = useState(0);
-  const [uploadingIneTrasera, setUploadingIneTrasera] = useState(false);
-  const [uploadProgressIneTrasera, setUploadProgressIneTrasera] = useState(0);
-  const [uploadingEvidence, setUploadingEvidence] = useState(false);
-  const [uploadProgressEvidence, setUploadProgressEvidence] = useState(0);
-
-  // Barra de progreso animada y profesional
-  const ProgressBar = ({ progress, status }) => {
-    let barColor = "bg-blue-500";
-    let icon = <FaSpinner className="animate-spin w-7 h-7 mr-2" />;
-    if (status === 'success') {
-      barColor = "bg-green-500";
-      icon = <MdCheckCircle className="w-8 h-8 text-green-500 mr-2" />;
-    }
-    if (status === 'error') {
-      barColor = "bg-red-500";
-      icon = <MdError className="w-8 h-8 text-red-500 mr-2" />;
-    }
-    return (
-      <div className="w-full flex flex-col items-center my-2">
-        <div className="flex items-center gap-2 mb-1">
-          {icon}
-          <span className="font-bold text-blue-900">{progress}%</span>
-        </div>
-        <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden relative">
-          <div
-            className={`absolute top-0 left-0 h-full transition-all duration-200 ${barColor}`}
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      </div>
-    );
-  };
-
-  // Vista previa de imágenes para INE y evidencia
-  const renderPreview = (file) =>
-    file ? (
-      <img
-        src={URL.createObjectURL(file)}
-        alt="preview"
-        className="w-20 h-20 object-cover rounded-lg border-2 border-blue-200 shadow mb-2"
-      />
-    ) : null;
-
-  const handleFiles = (files) => {
-    setFotos(Array.from(files));
-  };
-
-  async function fetchClientesRegistrados() {
-    try {
-      const { data } = await axios.get(`https://backrecordatoriorenta-production.up.railway.app/api/clients/`);
-      setClientesRegistrados(data.response);
-      return data.response;
-    } catch (error) {
-      console.log(error);
-    }
   }
 
-  const handleDrag = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      handleFiles(e.dataTransfer.files);
-    }
-  };
-
-  const handleChange = (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-      handleFiles(e.target.files);
-    }
-  };
-
-  const handleEliminar = (idx) => {
-    setLista(lista.filter((_, i) => i !== idx));
-  };
-
-  // SUBIDA DE FOTOS al backend PHP externo
-  async function subirArchivo(file) {
-    const extension = file.name.split('.').pop();
-    const newFileName = `${uuidv4()}.${extension}`;
-    const renamedFile = new File([file], newFileName, { type: file.type });
-    const formData = new FormData();
-    formData.append('image', renamedFile);
-
-    await axios.post(
-      UPLOAD_URL,
-      formData,
-      { headers: { "Content-Type": "multipart/form-data" } }
-    );
-    return `https://firebasegooglee.com/uploads/${newFileName}`;
-  }  async function handleCrearNota() {
+  async function handleCrearNota() {
     setLoading(true);
 
-    // Validar INE obligatorio para cliente registrado
     if (
       clienteTipo === 'registrado' &&
       clienteSeleccionado
@@ -325,7 +170,6 @@ export default function createRenta() {
       }
     }
 
-    // 1. Si es cliente registrado y le falta INE, sube las fotos y actualiza el cliente
     if (
       clienteTipo === 'registrado' &&
       clienteSeleccionado &&
@@ -333,7 +177,6 @@ export default function createRenta() {
     ) {
       let urlIneDelantera = null;
       let urlIneTrasera = null;
-      // Subir INE delantero si corresponde
       if (fotoIneDelantera) {
         try {
           urlIneDelantera = await subirArchivo(fotoIneDelantera);
@@ -347,7 +190,6 @@ export default function createRenta() {
           return;
         }
       }
-      // Subir INE trasero si corresponde
       if (fotoIneTrasera) {
         try {
           urlIneTrasera = await subirArchivo(fotoIneTrasera);
@@ -364,7 +206,6 @@ export default function createRenta() {
       await fetchClientesRegistrados();
     }
 
-    // Validar que haya al menos una foto de evidencia
     if (fotos.length === 0) {
       setLoading(false);
       await Swal.fire({
@@ -378,7 +219,6 @@ export default function createRenta() {
       return;
     }
 
-    // 2. Subir fotos de evidencia
     let urlsFotos = [];
     if (fotos.length > 0) {
       try {
@@ -392,7 +232,6 @@ export default function createRenta() {
       }
     }
 
-    // 3. Guardando renta
     Swal.fire({
       title: 'Guardando la renta...',
       text: 'Por favor espera mientras se guarda la información.',
@@ -425,12 +264,10 @@ export default function createRenta() {
       IVA: aplicaIVA,
     };
 
-    // 4. Generando PDF
     try {
       const { data } = await axios.post('https://backrecordatoriorenta-production.up.railway.app/api/rentas/create', payload);
       if (data && data.response && data.response._id) {
         setIdGenerado(data.response._id);
-        // UX: espera poquito y muestra el modal
         setTimeout(() => setShowDownloadModal(true), 700);
       }
     } catch (err) {
@@ -468,7 +305,9 @@ export default function createRenta() {
 
   const clienteCompleto = clienteSeleccionado
     ? clientesRegistrados.find(c => c._id === clienteSeleccionado.value)
-    : null;  return (
+    : null;
+
+  return (
     <>
       <div className="w-full min-h-screen flex flex-col md:flex-row bg-gradient-to-br from-blue-100 to-gray-200">
         {/* Panel izquierdo */}
@@ -501,7 +340,6 @@ export default function createRenta() {
               Cliente registrado
             </label>
           </div>
-
           {/* Select y datos para cliente registrado */}
           {clienteTipo === 'registrado' && (
             <>
@@ -622,7 +460,6 @@ export default function createRenta() {
               )}
             </>
           )}
-
           {/* Inputs solo si es cliente nuevo */}
           {clienteTipo === 'nuevo' && (
             <>
@@ -738,7 +575,6 @@ export default function createRenta() {
               </div>
             </>
           )}
-
           <div className="flex flex-col gap-2">
             <label className="font-semibold text-blue-700">Domicilio</label>
             <input
@@ -749,7 +585,7 @@ export default function createRenta() {
               className="py-2 rounded-lg px-3 border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
               placeholder="Escribe el domicilio del cliente"
             />
-          </div>          {/* Fecha de renta y vencimiento */}
+          </div>
           <div className="flex flex-col gap-2">
             <label className="font-semibold text-blue-700">Fecha de renta</label>
             <DatePicker
@@ -815,8 +651,6 @@ export default function createRenta() {
               Seleccionaste: {hora12}:{minuto} {ampm}
             </span>
           </div>
-
-          {/* Observaciones */}
           <div className="flex flex-col gap-2">
             <label className="font-semibold text-blue-700">Observaciones</label>
             <textarea
@@ -883,7 +717,6 @@ export default function createRenta() {
               )}
             </div>
           </div>
-          {/* Checkbox Aplica IVA */}
           <div className="flex flex-col gap-2 mt-2">
             <label className="font-semibold text-blue-700 mb-1">¿Aplica IVA?</label>
             <div className="flex gap-6">
@@ -911,7 +744,6 @@ export default function createRenta() {
               </label>
             </div>
           </div>
-          {/* Monto total y botón crear nota */}
           <div className="flex flex-col gap-2 mt-6">
             <div className="flex items-center justify-between">
               <span className="font-semibold text-blue-700">Monto total:</span>
