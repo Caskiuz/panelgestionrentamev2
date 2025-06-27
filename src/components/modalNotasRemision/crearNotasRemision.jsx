@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { uploadFoto } from '../../firebase/images.js'; // Tu función de subida a Firebase
+import { uploadFoto } from '../../firebase/images.js';
 import axios from 'axios';
 import Select from 'react-select';
 import Swal from 'sweetalert2';
-import dayjs from 'dayjs'; //
+import dayjs from 'dayjs';
 
 export default function CrearNotasRemision({ closeModal2 }) {
-  // Estados principales
   const [nombre, setNombre] = useState('');
   const [domicilio, setDomicilio] = useState('');
   const [ciudad_estado, setCiudadEstado] = useState('');
@@ -16,28 +15,22 @@ export default function CrearNotasRemision({ closeModal2 }) {
   const [fotos, setFotos] = useState([]);
   const [observaciones, setObservaciones] = useState('');
   const [productos, setProductos] = useState([]);
-  console.log(productos);
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
   const [cantidad, setCantidad] = useState(1);
   const [IVA, setIVA] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Equipos para el select
   const [equipos, setEquipos] = useState([]);
   const [busquedaEquipo, setBusquedaEquipo] = useState('');
   const [showSearchMsg, setShowSearchMsg] = useState(false);
-
-  // Agregar este estado arriba en tu componente:
   const [showStockError, setShowStockError] = useState(false);
 
-  // Cargar equipos al montar
   React.useEffect(() => {
     axios.get('https://backrecordatoriorenta-production.up.railway.app/api/products/')
       .then(res => setEquipos(res.data.response))
       .catch(() => setEquipos([]));
   }, []);
 
-  // Manejo de imágenes
   const handleFileChange = (e) => {
     setFotos([...fotos, ...Array.from(e.target.files)]);
   };
@@ -46,25 +39,22 @@ export default function CrearNotasRemision({ closeModal2 }) {
     setFotos([...fotos, ...Array.from(e.dataTransfer.files)]);
   };
 
-  // Opciones para el select de equipos
   const opcionesEquipos = equipos
     .filter(eq =>
       eq.nombre.toLowerCase().includes(busquedaEquipo.toLowerCase())
     )
     .map(eq => ({
-      ...eq, // <-- Esto agrega todas las propiedades del producto
+      ...eq,
       value: eq._id,
       label: eq.nombre,
     }));
 
-  // Cuando el usuario escribe en el input de búsqueda
   const handleBusquedaEquipo = (e) => {
     setBusquedaEquipo(e.target.value);
     setShowSearchMsg(true);
     setProductoSeleccionado(null);
   };
 
-  // Cuando selecciona un producto, se pone el precio automáticamente
   React.useEffect(() => {
     if (productoSeleccionado && productoSeleccionado.precio_renta) {
       setShowSearchMsg(false);
@@ -72,7 +62,6 @@ export default function CrearNotasRemision({ closeModal2 }) {
     }
   }, [productoSeleccionado]);
 
-  // Agregar producto a la lista
   const handleAgregarProducto = () => {
     if (!productoSeleccionado || !cantidad) {
       Swal.fire('Selecciona un equipo y cantidad', '', 'warning');
@@ -97,15 +86,12 @@ export default function CrearNotasRemision({ closeModal2 }) {
     setBusquedaEquipo('');
   };
 
-  // Eliminar producto de la lista
   const handleEliminarProducto = (idx) => {
     setProductos(productos.filter((_, i) => i !== idx));
   };
 
-  // Calcular importe total
   const importe_total = productos.reduce((acc, prod) => acc + prod.precio_x_cantidad, 0);
 
-  // Manejo de submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -114,20 +100,19 @@ export default function CrearNotasRemision({ closeModal2 }) {
       if (fotos.length > 0) {
         urlsFotos = await Promise.all(fotos.map(file => uploadFoto(file)));
       }
-      // Calcula fecha y hora actual automáticamente
       const now = new Date();
       const fechaActualStr = now.toLocaleDateString('es-MX');
       const horaActualStr = now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
 
       const payload = {
-        nombre:nombre.toUpperCase().trim(),
-        domicilio:domicilio.trim(),
-        ciudad_estado:ciudad_estado.trim(),
+        nombre: nombre.toUpperCase().trim(),
+        domicilio: domicilio.trim(),
+        ciudad_estado: ciudad_estado.trim(),
         fecha_actual: fechaActualStr,
         hora_actual: horaActualStr,
         fecha_vencimiento: fecha_vencimiento ? fecha_vencimiento.toLocaleDateString('es-MX') : '',
         fotos: urlsFotos,
-        observaciones:observaciones.trim(),
+        observaciones: observaciones.trim(),
         productos: productos.map(prod => ({
           nombre: prod.nombre,
           cantidad: prod.cantidad,
@@ -141,7 +126,7 @@ export default function CrearNotasRemision({ closeModal2 }) {
       const { data } = await axios.post('https://backrecordatoriorenta-production.up.railway.app/api/notas_remision/create', payload);
       Swal.fire('Nota de remisión creada', '', 'success');
       setLoading(false);
-      window.location.reload(); // Recargar la página para ver la nueva nota
+      window.location.reload();
       return data.response;
     } catch (error) {
       Swal.fire('Error al crear la nota', '', 'error');
@@ -186,7 +171,6 @@ export default function CrearNotasRemision({ closeModal2 }) {
               />
             </div>
           </div>
-          {/* Fotos */}
           <div
             className="border-dashed border-2 border-gray-400 rounded p-4 text-center cursor-pointer"
             onDrop={handleDrop}
@@ -209,12 +193,10 @@ export default function CrearNotasRemision({ closeModal2 }) {
               ))}
             </div>
           </div>
-          {/* Observaciones */}
           <div>
             <label className="font-semibold">Observaciones</label>
             <textarea value={observaciones} onChange={e => setObservaciones(e.target.value)} className="border rounded px-3 py-2 w-full" />
           </div>
-          {/* Productos */}
           <div className="border rounded p-3">
             <label className="font-semibold">Equipos (máx. 10)</label>
             <div className="flex flex-col md:flex-row gap-2 mt-2 items-end">
@@ -244,8 +226,7 @@ export default function CrearNotasRemision({ closeModal2 }) {
                       return;
                     }
                     val = Number(val);
-                    // Asegúrate de que el stock sea un número y no undefined/null
-                    const max = productoSeleccionado.stock;
+                    const max = productoSeleccionado?.stock;
                     if (val > max) {
                       setCantidad(val);
                       setShowStockError(true);
@@ -259,7 +240,6 @@ export default function CrearNotasRemision({ closeModal2 }) {
                   disabled={!productoSeleccionado}
                   autoComplete="off"
                 />
-                {/* Tooltip tipo nube con icono */}
                 {showStockError && (
                   <div className="absolute left-0 -top-12 flex items-center gap-2 bg-white border border-gray-300 shadow-lg rounded px-3 py-2 z-20"
                        style={{ minWidth: 220 }}>
@@ -272,7 +252,6 @@ export default function CrearNotasRemision({ closeModal2 }) {
                     <div className="absolute left-4 top-full w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-white"></div>
                   </div>
                 )}
-                
               </div>
               <div className="flex flex-col items-start">
                 <label className="text-xs font-semibold mb-1">Precio por unidad</label>
@@ -308,7 +287,6 @@ export default function CrearNotasRemision({ closeModal2 }) {
                 Agregar
               </button>
             </div>
-            {/* Lista de productos agregados */}
             <div className="mt-3">
               {productos.length === 0 && <div className="text-gray-500 text-sm">No hay equipos agregados.</div>}
               {productos.length > 0 && (
@@ -339,7 +317,6 @@ export default function CrearNotasRemision({ closeModal2 }) {
               )}
             </div>
           </div>
-          {/* Importe total e IVA */}
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
             <div>
               <label className="font-semibold flex items-center gap-2">
@@ -355,7 +332,6 @@ export default function CrearNotasRemision({ closeModal2 }) {
               Importe total: <span className="text-primary">${importe_total.toFixed(2)}</span>
             </div>
           </div>
-          {/* Botones */}
           <div className="flex justify-end gap-2 mt-2">
             <button
               type="button"

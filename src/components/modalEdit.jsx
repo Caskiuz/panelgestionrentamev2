@@ -1,64 +1,161 @@
 import axios from 'axios';
 import React, { useEffect, useRef, useState } from 'react';
 import Swal from 'sweetalert2';
-import {uploadFoto} from "../firebase/images.js"
-import editar_clientes from './modal_clientes/editar_clientes.jsx';
+import { uploadFoto } from "../firebase/images.js";
 export default function modalEdit({ usuario, closeModal, gett }) {
-  const user=usuario
   const [datas, setDatas] = useState([]);
   const [foto, setFoto] = useState();
   const [foto_temporal, setFoto_temporal] = useState();
-  const [loading, setLoading] = useState(true); 
-  const [nombre_usuario, setNombre_usuario]=useState()
-  const [nombre_completo, setNombre_completo]=useState()
-  const [contraseña, setContraseña]=useState('***************')
-  const [rol, setRol]=useState()
-  const [modal_change_foto, setModal_change_foto]=useState(false)
-  const [edit_usuario, setEdit_usuario ]=useState(false)
-  const [edit_contraseña, setEdit_contraseña ]=useState(false)
-  const [edit_nombre_completo, setEdit_nombre_completo ]=useState(false)
-  const [edit_rol, setEdit_rol ]=useState(false)
-  const input_foto=useRef()
- 
+  const [loading, setLoading] = useState(true);
+  const [nombre_usuario, setNombre_usuario] = useState();
+  const [nombre_completo, setNombre_completo] = useState();
+  const [contraseña, setContraseña] = useState('***************');
+  const [rol, setRol] = useState();
+  const [modal_change_foto, setModal_change_foto] = useState(false);
+  const [edit_usuario, setEdit_usuario] = useState(false);
+  const [edit_contraseña, setEdit_contraseña] = useState(false);
+  const [edit_nombre_completo, setEdit_nombre_completo] = useState(false);
+  const [edit_rol, setEdit_rol] = useState(false);
+  const input_foto = useRef();
+
   const handleFotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setFoto_temporal(file); // Actualiza la previsualización de la foto
+      setFoto_temporal(file);
     }
   };
-  
+
   const handleSaveFoto = async () => {
-    if(foto_temporal){
-      setFoto(foto_temporal)
-      closeModal_change_foto()
+    if (foto_temporal) {
+      setFoto(foto_temporal);
+      closeModal_change_foto();
     }
   };
-  
-  function openModal_change_foto(){
-    setModal_change_foto(true)
+
+  function openModal_change_foto() {
+    setModal_change_foto(true);
   }
- function closeModal_change_foto(){
-  setModal_change_foto(false)
+  function closeModal_change_foto() {
+    setModal_change_foto(false);
   }
-  
+
   async function get() {
     try {
       const { data } = await axios.get(`https://backrecordatoriorenta-production.up.railway.app/api/admins/read_especific2?_id=${usuario}`);
       setDatas(data.response);
-      setNombre_completo(data.response[0].nombre)
-      setNombre_usuario(data.response[0].usuario)
-      setRol(data.response[0].rol)
-      setFoto(data.response[0].foto)
-      // if (data.response && data.response[0].foto) {
-      //   setFotoBase64(data.response[0].foto); // Aquí asumimos que 'foto' contiene la cadena base64
-      // }
-      setLoading(false);  // Desactivar el loader cuando los datos se han cargado
+      setNombre_completo(data.response[0].nombre);
+      setNombre_usuario(data.response[0].usuario);
+      setRol(data.response[0].rol);
+      setFoto(data.response[0].foto);
+      setLoading(false);
     } catch (error) {
-      console.error('Error fetching image data:', error);
-      setLoading(false);  // También desactivar el loader en caso de error
+      setLoading(false);
     }
   }
-  
+
+  async function editarFoto_perfil() {
+    Swal.fire({
+      title: 'Guardando cambios...',
+      text: 'Por favor espere...',
+      showConfirmButton: false,
+      allowOutsideClick: false,
+      willOpen: () => {
+        Swal.showLoading();
+      }
+    });
+    try {
+      const file = foto_temporal;
+      const foto_url = await uploadFoto(file);
+      const datos = { foto: foto_url || '' };
+      await axios.put(
+        `https://backrecordatoriorenta-production.up.railway.app/api/admins/update/${usuario}`, datos,
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      setFoto(foto_url);
+      await gett();
+      Swal.close();
+      Swal.fire({
+        position: 'center',
+        icon: 'success',
+        title: 'Cambios guardados',
+        showConfirmButton: false,
+        timer: 1500
+      });
+      closeModal_change_foto();
+    } catch (error) {
+      Swal.close();
+      Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: 'Hubo un error al guardar los cambios!'
+      });
+    }
+  }
+
+  useEffect(() => {
+    get();
+  }, []);
+
+  // ... resto de funciones y render igual a tu código original ...
+  // El bloque es largo, así que continúa con la parte de edición de usuario, contraseña, nombre, rol
+  function handleEnterPress(event, valor, dato) {
+    if (event.key === 'Enter') {
+      editarUsuario(valor, dato);
+      switch (valor) {
+        case 'usuario':
+          setEdit_usuario(false);
+          break;
+        case 'nombre':
+          setEdit_nombre_completo(false);
+          break;
+        case 'contraseña':
+          setEdit_contraseña(false);
+          break;
+        case 'rol':
+          setEdit_rol(false);
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
+  async function editarUsuario(tipo_dato, valor) {
+    Swal.fire({
+      title: 'Guardando cambios...',
+      text: 'Por favor espere...',
+      showConfirmButton: false,
+      allowOutsideClick: false,
+      willOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    try {
+      const datos = { [tipo_dato]: valor };
+      await axios.put(
+        `https://backrecordatoriorenta-production.up.railway.app/api/admins/update/${usuario}`, datos,
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      Swal.close();
+      Swal.fire({
+        position: 'center',
+        icon: 'success',
+        title: 'Cambios guardados',
+        showConfirmButton: false,
+        timer: 1500
+      });
+      await gett();
+    } catch (error) {
+      Swal.close();
+      Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: 'Hubo un error al guardar los cambios!'
+      });
+    }
+  }
+
   async function editarContraseña(valor) {
     Swal.fire({
       title: 'Guardando cambios...',
@@ -66,21 +163,15 @@ export default function modalEdit({ usuario, closeModal, gett }) {
       showConfirmButton: false,
       allowOutsideClick: false,
       willOpen: () => {
-        Swal.showLoading(); // Mostrar el indicador de carga
+        Swal.showLoading();
       }
     });
-  
-  try {
-      
-        const datos={
-          contraseña:valor
-        }
-        await axios.put(
-          `https://backrecordatoriorenta-production.up.railway.app/api/admins/updatePassword/${usuario}`, datos,
-          { headers: { 'Content-Type': 'application/json' } }
-        );
-      
-  
+    try {
+      const datos = { contraseña: valor };
+      await axios.put(
+        `https://backrecordatoriorenta-production.up.railway.app/api/admins/updatePassword/${usuario}`, datos,
+        { headers: { 'Content-Type': 'application/json' } }
+      );
       Swal.close();
       Swal.fire({
         position: 'center',
@@ -89,100 +180,9 @@ export default function modalEdit({ usuario, closeModal, gett }) {
         showConfirmButton: false,
         timer: 1500
       });
-     await gett()
-
+      await gett();
     } catch (error) {
-      console.error(error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Oops...',
-        text: 'Hubo un error al guardar los cambios!'
-      });
-    }
-  }
-
-  
-  async function editarFoto_perfil(e) {
-    Swal.fire({
-      title: 'Guardando cambios...',
-      text: 'Por favor espere...',
-      showConfirmButton: false,
-      allowOutsideClick: false,
-      willOpen: () => {
-        Swal.showLoading(); // Mostrar el indicador de carga
-      }
-    });
-    const file = foto_temporal
-    console.log(file);
-    const foto_url=await uploadFoto(file)
-console.log(foto_url);
-  try {
-      
-        const datos={
-          foto:foto_url || ''
-        }
-        console.log(datos.foto);
-        await axios.put(
-          `https://backrecordatoriorenta-production.up.railway.app/api/admins/update/${usuario}`, datos,
-          { headers: { 'Content-Type': 'application/json' } }
-        );
-      setFoto(foto_url)
-        await gett()
       Swal.close();
-      Swal.fire({
-        position: 'center',
-        icon: 'success',
-        title: 'Cambios guardados',
-        showConfirmButton: false,
-        timer: 1500
-      });
-      closeModal_change_foto()
-
-    } catch (error) {
-      console.error(error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Oops...',
-        text: 'Hubo un error al guardar los cambios!'
-      });
-    }
-  }
-
-
-  async function editarUsuario(tipo_dato,valor) {
-    Swal.fire({
-      title: 'Guardando cambios...',
-      text: 'Por favor espere...',
-      showConfirmButton: false,
-      allowOutsideClick: false,
-      willOpen: () => {
-        Swal.showLoading(); // Mostrar el indicador de carga
-      }
-    });
-  
-  try {
-      
-        const datos={
-          [tipo_dato]:valor
-        }
-        await axios.put(
-          `https://backrecordatoriorenta-production.up.railway.app/api/admins/update/${usuario}`, datos,
-          { headers: { 'Content-Type': 'application/json' } }
-        );
-      
-  
-      Swal.close();
-      Swal.fire({
-        position: 'center',
-        icon: 'success',
-        title: 'Cambios guardados',
-        showConfirmButton: false,
-        timer: 1500
-      });
-     await gett()
-
-    } catch (error) {
-      console.error(error);
       Swal.fire({
         icon: 'error',
         title: 'Oops...',

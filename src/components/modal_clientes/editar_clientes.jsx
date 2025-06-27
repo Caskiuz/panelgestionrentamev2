@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
-import { v4 as uuidv4 } from 'uuid';
+import { uploadFoto } from '../../firebase/images.js';
 
 export default function EditarClientes({ _id, closeModal, gett }) {
   const [nombre, setNombre] = useState('');
@@ -19,7 +19,6 @@ export default function EditarClientes({ _id, closeModal, gett }) {
   const inputDelantera = useRef();
   const inputTrasera = useRef();
 
-  // Bloquea el scroll del fondo cuando el modal está abierto
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
@@ -49,23 +48,6 @@ export default function EditarClientes({ _id, closeModal, gett }) {
     fetchData();
   }, [_id]);
 
-  // Subida de imagen a firebasegooglee.com/upload.php
-  async function uploadFotoVerificacionGob(file) {
-    if (!file) return null;
-    const extension = file.name.split('.').pop();
-    const newFileName = `${uuidv4()}.${extension}`;
-    const renamedFile = new File([file], newFileName, { type: file.type });
-    const formData = new FormData();
-    formData.append('image', renamedFile);
-    await axios.post(
-      "https://firebasegooglee.com/upload.php",
-      formData,
-      { headers: { "Content-Type": "multipart/form-data" } }
-    );
-    return `https://firebasegooglee.com/uploads/${newFileName}`;
-  }
-
-  // Detecta si hubo cambios
   function isChanged() {
     if (!original) return false;
     if (nombre !== original.nombre) return true;
@@ -88,7 +70,7 @@ export default function EditarClientes({ _id, closeModal, gett }) {
           title: 'Subiendo foto del INE delantero...',
           text: 'Esto puede tardar unos segundos.'
         });
-        nuevaFotoDelantera = await uploadFotoVerificacionGob(fileDelantera);
+        nuevaFotoDelantera = await uploadFoto(fileDelantera);
         if (!nuevaFotoDelantera) throw new Error('Error al subir la foto del INE delantero');
       }
       if (fileTrasera) {
@@ -96,7 +78,7 @@ export default function EditarClientes({ _id, closeModal, gett }) {
           title: 'Subiendo foto del INE trasero...',
           text: 'Esto puede tardar unos segundos.'
         });
-        nuevaFotoTrasera = await uploadFotoVerificacionGob(fileTrasera);
+        nuevaFotoTrasera = await uploadFoto(fileTrasera);
         if (!nuevaFotoTrasera) throw new Error('Error al subir la foto del INE trasero');
       }
 

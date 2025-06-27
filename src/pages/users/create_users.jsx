@@ -4,7 +4,6 @@ import Menu from '../../components/menu';
 import axios from 'axios';
 import { Notyf } from 'notyf';
 import 'notyf/notyf.min.css';
-import {uploadFoto} from '../../firebase/images.js'
 import Swal from 'sweetalert2';
 export default function create_users() {
     const notyf = new Notyf({
@@ -54,6 +53,7 @@ const file = input_foto.current.files[0];
     if (file) {
         const blobURL = URL.createObjectURL(file);
         setFoto(blobURL);  // Muestra la imagen previa al subir
+        setFotoBuffer(file); // Guarda el archivo para envío
     }
 };
 
@@ -68,30 +68,29 @@ async function crearUsuario() {
     if (!usuario || !contraseña || !rol || !nombre_completo) {
         return alert('Todos los campos son requeridos');
     }
-    let fotoURL = ''; // Variable temporal para almacenar la URL de la foto
 
-    // Verifica si hay un archivo seleccionado y sube la foto
-    const selectedFile = input_foto.current.files[0];
-    if (selectedFile) {
-        try {
-            fotoURL = await uploadFoto(selectedFile); // Sube la foto y obtiene la URL
-            console.log('URL de descarga:', fotoURL);
-        } catch (error) {
-            notyf.error('Error al subir la foto. Intente nuevamente.');
-            return;
-        }
-    }
-
-    // Si hay foto o si se permite enviar sin foto
-    const datos = {
+    let datos;
+    if (fotoBuffer) {
+      // Si hay foto, usar FormData para enviar la imagen al backend v1
+      datos = new FormData();
+      datos.append('usuario', usuario);
+      datos.append('rol', rol);
+      datos.append('contraseña', contraseña);
+      datos.append('nombre', nombre_completo);
+      datos.append('foto', fotoBuffer); // Enviar el archivo al backend v1
+    } else {
+      // Si no hay foto, enviar el objeto normal
+      datos = {
         usuario: usuario,
         rol: rol,
         contraseña: contraseña,
-        nombre:nombre_completo,
-        foto: fotoURL || null, // Envía la URL o null si no se seleccionó una foto
-    };
-
+        nombre: nombre_completo,
+        foto: null
+      };
+    }
     try {
+        // Cambia el endpoint si el backend v1 es diferente
+        // Si envías FormData, no pongas Content-Type, axios lo pone
         await axios.post(`https://backrecordatoriorenta-production.up.railway.app/api/admins/create`, datos);
         notyf.success('El usuario se creó con éxito. Se recargará esta página en 1 segundo.');
         setTimeout(() => {

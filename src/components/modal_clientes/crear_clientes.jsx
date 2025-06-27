@@ -3,11 +3,9 @@ import axios from 'axios';
 import { Notyf } from 'notyf';
 import 'notyf/notyf.min.css';
 import Swal from 'sweetalert2';
-import { v4 as uuidv4 } from 'uuid';
+import { uploadFoto } from '../../firebase/images.js';
 import { MdCloudUpload, MdCheckCircle, MdError } from "react-icons/md";
 import { FaSpinner, FaTrashAlt } from "react-icons/fa";
-
-const UPLOAD_URL = import.meta.env.VITE_UPLOAD_URL || "http://localhost:4000/upload";
 
 export default function crear_clientes({ closeModal2 }) {
   const notyf = new Notyf({ position: { x: 'center', y: 'top' }, duration: 3500 });
@@ -67,8 +65,8 @@ export default function crear_clientes({ closeModal2 }) {
   const handleDragDel = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") setDragActiveDel(true);
-    else if (e.type === "dragleave") setDragActiveDel(false);
+    if (e.type === "dragenter" || e.type === "dragleave" || e.type === "dragover") setDragActiveDel(true);
+    else setDragActiveDel(false);
   };
   const handleDropDel = (e) => {
     e.preventDefault();
@@ -94,8 +92,8 @@ export default function crear_clientes({ closeModal2 }) {
   const handleDragTra = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") setDragActiveTra(true);
-    else if (e.type === "dragleave") setDragActiveTra(false);
+    if (e.type === "dragenter" || e.type === "dragleave" || e.type === "dragover") setDragActiveTra(true);
+    else setDragActiveTra(false);
   };
   const handleDropTra = (e) => {
     e.preventDefault();
@@ -118,29 +116,15 @@ export default function crear_clientes({ closeModal2 }) {
   };
 
   // Subida de imagen con barra digital real
-  async function uploadFotoGob(file, setProgress, setUploading) {
+  async function uploadFotoProgress(file, setProgress, setUploading) {
     if (!file) return null;
     setUploading(true);
     setProgress(0);
     try {
-      const extension = file.name.split('.').pop();
-      const newFileName = `${uuidv4()}.${extension}`;
-      const renamedFile = new File([file], newFileName, { type: file.type });
-      const formData = new FormData();
-      formData.append('image', renamedFile);
-      const resp = await axios.post(
-        UPLOAD_URL,
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-          onUploadProgress: (progressEvent) => {
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            setProgress(percentCompleted);
-          },
-        }
-      );
+      const url = await uploadFoto(file, setProgress);
       setUploading(false);
-      return resp.data.url;
+      setProgress(100);
+      return url;
     } catch (error) {
       setUploading(false);
       setProgress(0);
@@ -179,7 +163,7 @@ export default function crear_clientes({ closeModal2 }) {
       title: 'Subiendo foto del INE delantero...',
       text: 'Esto puede tardar unos segundos.'
     });
-    const fotoURL_1 = await uploadFotoGob(foto_ine_delantero, setProgressDel, setUploadingDel);
+    const fotoURL_1 = await uploadFotoProgress(foto_ine_delantero, setProgressDel, setUploadingDel);
 
     if (!fotoURL_1) {
       Swal.close();
@@ -192,7 +176,7 @@ export default function crear_clientes({ closeModal2 }) {
       title: 'Subiendo foto del INE trasero...',
       text: 'Esto puede tardar unos segundos.'
     });
-    const fotoURL_2 = await uploadFotoGob(foto_ine_trasero, setProgressTra, setUploadingTra);
+    const fotoURL_2 = await uploadFotoProgress(foto_ine_trasero, setProgressTra, setUploadingTra);
 
     if (!fotoURL_2) {
       Swal.close();
