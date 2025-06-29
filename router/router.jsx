@@ -23,6 +23,7 @@ import Nota_remision_manual from "../src/pages/PDF/nota_remision_manual";
 import CollectionGalery from "../src/pages/collectionGalery";
 import GeneradorRenta_notas from "../src/pages/notas de remision/generadorRenta_notas";
 import ImageCollectionRentas from "../src/pages/imageCollectionRentas";
+import NotFound from "../src/pages/NotFound";
 
 // ¡¡¡ CORRECCIÓN DE LA RUTA DE IMPORTACIÓN PARA COBROGESTAPP !!!
 // Ahora apunta a src/cobrogest/src/App.jsx
@@ -54,7 +55,12 @@ const router = createBrowserRouter([
   // ¡¡¡ RUTA PARA COBROGEST !!!
   {
     path: "/cobrogest/*",
-    element: <CobroGestApp />,
+    element: <CobroGestApp />, 
+  },
+  // Ruta catch-all para 404
+  {
+    path: "*",
+    element: <NotFound />,
   },
 ])
 

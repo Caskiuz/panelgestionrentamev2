@@ -50,6 +50,7 @@ export default function Navbar() {
       });
       localStorage.removeItem('token');
       localStorage.removeItem('usuario');
+      localStorage.removeItem('nombre');
       window.location.href = `${window.location.origin}/`;
       Swal.close();
     } catch (error) {

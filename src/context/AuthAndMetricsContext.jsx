@@ -38,11 +38,25 @@ export function AuthAndMetricsProvider({ children }) {
       if (response.data && response.data.response && response.data.response.length > 0) {
         setUserData(response.data.response[0]); // Guarda todo el objeto del usuario
       } else {
+        // Si la respuesta es vacía, limpiar localStorage y redirigir al login
+        localStorage.removeItem('token');
+        localStorage.removeItem('usuario');
+        localStorage.removeItem('nombre');
         setUserData(null);
+        window.location.href = '/';
       }
     } catch (error) {
-      console.error('Error al obtener datos del usuario en el contexto:', error);
-      setUserData(null);
+      // Si el error es 401 o 403, limpiar localStorage y redirigir al login
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('usuario');
+        localStorage.removeItem('nombre');
+        setUserData(null);
+        window.location.href = '/';
+      } else {
+        console.error('Error al obtener datos del usuario en el contexto:', error);
+        setUserData(null);
+      }
     } finally {
       setIsLoading(false);
     }
