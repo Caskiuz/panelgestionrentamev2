@@ -109,6 +109,27 @@ export function AuthAndMetricsProvider({ children }) {
   }, []); // Se ejecuta una sola vez al montar el proveedor
 
   // Proveer los datos y un estado de carga a los componentes hijos
+  if (isLoading) {
+    return (
+      <div style={{width: '100vw', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f5f6fa'}}>
+        <div style={{textAlign: 'center'}}>
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Cargando...</span>
+          </div>
+          <p style={{color: '#3B5A75', fontWeight: 'bold'}}>Cargando datos de sesión...</p>
+        </div>
+      </div>
+    );
+  }
+  if (!userData) {
+    return (
+      <div style={{width: '100vw', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#fff0f0'}}>
+        <div style={{textAlign: 'center'}}>
+          <p style={{color: '#c00', fontWeight: 'bold', fontSize: '1.2rem'}}>No autenticado. Por favor inicia sesión.</p>
+        </div>
+      </div>
+    );
+  }
   return (
     <AuthAndMetricsContext.Provider value={{ userData, globalMetrics, isLoading, fetchUserData, fetchGlobalMetrics }}>
       {children}
