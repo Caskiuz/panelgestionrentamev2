@@ -121,15 +121,6 @@ export function AuthAndMetricsProvider({ children }) {
       </div>
     );
   }
-  if (!userData) {
-    return (
-      <div style={{width: '100vw', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#fff0f0'}}>
-        <div style={{textAlign: 'center'}}>
-          <p style={{color: '#c00', fontWeight: 'bold', fontSize: '1.2rem'}}>No autenticado. Por favor inicia sesión.</p>
-        </div>
-      </div>
-    );
-  }
   return (
     <AuthAndMetricsContext.Provider value={{ userData, globalMetrics, isLoading, fetchUserData, fetchGlobalMetrics }}>
       {children}
