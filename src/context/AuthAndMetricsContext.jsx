@@ -17,11 +17,11 @@ export function AuthAndMetricsProvider({ children }) {
   // Función para obtener los datos del usuario (Nombre, Rol, Foto)
   const fetchUserData = async () => {
     setIsLoading(true);
-    const usuario = localStorage.getItem('usuario'); // Obtén el nombre de usuario del localStorage
-    const token = localStorage.getItem('token'); // Obtén el token si lo necesitas para la autenticación
+    const usuario = localStorage.getItem('usuario');
+    const token = localStorage.getItem('token');
 
     if (!usuario || !token) {
-      console.warn("No 'usuario' o 'token' encontrado en localStorage. No se cargarán los datos del usuario.");
+      // No mostrar advertencia al usuario final, solo salir silenciosamente
       setUserData(null);
       setIsLoading(false);
       return;
