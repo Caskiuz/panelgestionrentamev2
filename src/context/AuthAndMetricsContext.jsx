@@ -8,10 +8,9 @@ export const AuthAndMetricsContext = createContext(null);
 export function AuthAndMetricsProvider({ children }) {
   const [userData, setUserData] = useState(null);
   const [globalMetrics, setGlobalMetrics] = useState({
-    deudasPendientes: '$5,400.00',
-    pagosRecibidosMes: '$1,250.00',
-    clientesActivos: '75',
-    // Puedes añadir más métricas globales del proyecto principal aquí
+    deudasPendientes: 'Cargando...',
+    pagosRecibidosMes: 'Cargando...',
+    clientesActivos: 'Cargando...'
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -49,18 +48,46 @@ export function AuthAndMetricsProvider({ children }) {
     }
   };
 
-  // Puedes añadir una función para obtener métricas globales aquí si tienes una API
+  // Obtener métricas globales reales desde la API
   const fetchGlobalMetrics = async () => {
-    // Ejemplo:
-    // try {
-    //   const response = await axios.get('TU_API_DE_METRICAS_GLOBALES');
-    //   setGlobalMetrics(response.data);
-    // } catch (error) {
-    //   console.error('Error al obtener métricas globales:', error);
-    // }
-    // Por ahora, usaremos los datos hardcodeados
+    const token = localStorage.getItem('token');
+    const axiosConfig = { headers: { Authorization: `Bearer ${token}` } };
+    try {
+      // Deudas pendientes (rentas no pagadas)
+      const { data: rentasData } = await axios.get('https://backrecordatoriorenta-production.up.railway.app/api/rentas/', axiosConfig);
+      const rentas = rentasData.response || [];
+      const deudasPendientes = rentas.filter(r => r.estado_renta !== 'Pagada');
+      const totalDeudasPendientes = deudasPendientes.reduce((sum, r) => sum + parseFloat(r.total_renta || 0), 0);
+      // Pagos recibidos del mes (rentas pagadas este mes)
+      const now = new Date();
+      const mesActual = now.getMonth();
+      const anioActual = now.getFullYear();
+      const pagosMes = rentas.filter(r => {
+        if (r.estado_renta === 'Pagada' && r.updatedAt) {
+          const fechaPago = new Date(r.updatedAt);
+          return fechaPago.getMonth() === mesActual && fechaPago.getFullYear() === anioActual;
+        }
+        return false;
+      });
+      const totalPagosMes = pagosMes.reduce((sum, r) => sum + parseFloat(r.total_renta || 0), 0);
+      // Clientes activos (clientes con al menos una renta activa o pagada)
+      const { data: clientesData } = await axios.get('https://backrecordatoriorenta-production.up.railway.app/api/clients', axiosConfig);
+      const clientes = clientesData.response || [];
+      // Si quieres solo clientes con rentas activas, puedes filtrar aquí
+      const clientesActivos = clientes.length;
+      setGlobalMetrics({
+        deudasPendientes: `$${totalDeudasPendientes.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
+        pagosRecibidosMes: `$${totalPagosMes.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
+        clientesActivos: clientesActivos.toString()
+      });
+    } catch (error) {
+      setGlobalMetrics({
+        deudasPendientes: 'N/A',
+        pagosRecibidosMes: 'N/A',
+        clientesActivos: 'N/A'
+      });
+    }
   };
-
 
   useEffect(() => {
     fetchUserData();
@@ -69,7 +96,7 @@ export function AuthAndMetricsProvider({ children }) {
 
   // Proveer los datos y un estado de carga a los componentes hijos
   return (
-    <AuthAndMetricsContext.Provider value={{ userData, globalMetrics, isLoading, fetchUserData }}>
+    <AuthAndMetricsContext.Provider value={{ userData, globalMetrics, isLoading, fetchUserData, fetchGlobalMetrics }}>
       {children}
     </AuthAndMetricsContext.Provider>
   );
