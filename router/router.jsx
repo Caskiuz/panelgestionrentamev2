@@ -31,8 +31,8 @@ import CobroGestApp from "../src/cobrogest/src/App";
 
 
 const router = createBrowserRouter([
-  { path: "/", element: <ProtectLogin/>, children:[{index:true, element:<Index/>}] },
-  { path: "/Homepage", element: <ProtectSistem/> , children:[{index:true, element:<Homepage/>}] },
+  { path: "/", element: <ProtectLogin><Index /></ProtectLogin> },
+  { path: "/Homepage", element: <ProtectSistem/>, children:[{index:true, element:<Homepage/>}] },
   { path: "/create_users", element: <ProtectAccess/>, children:[{index:true, element:<Create_users/> }]},
   { path: "/delete_users", element: <ProtectAccess/> ,children:[{index:true, element:<Delete_users/> }]},
   { path: "/edit_users", element: <ProtectAccess/> ,children:[{index:true, element:<Edit_users/> }]},
