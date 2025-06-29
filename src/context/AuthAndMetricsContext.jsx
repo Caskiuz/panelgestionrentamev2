@@ -124,18 +124,7 @@ export function AuthAndMetricsProvider({ children }) {
       </div>
     );
   }
-  if (!userData) {
-    console.log('[AuthAndMetricsContext] Estado: !userData, children:', children);
-    return (
-      <div style={{width: '100vw', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#fff0f0'}}>
-        <div style={{textAlign: 'center'}}>
-          <p style={{color: '#c00', fontWeight: 'bold', fontSize: '1.2rem'}}>[Depuración] No autenticado. userData: null</p>
-          <p style={{color: '#c00', fontWeight: 'bold', fontSize: '1.2rem'}}>¿Debería verse el login aquí?</p>
-        </div>
-      </div>
-    );
-  }
-  console.log('[AuthAndMetricsContext] Estado: autenticado, userData:', userData);
+  // Siempre renderizar children después del loading
   return (
     <AuthAndMetricsContext.Provider value={{ userData, globalMetrics, isLoading, fetchUserData, fetchGlobalMetrics }}>
       {children}
