@@ -43,7 +43,7 @@ export function AuthAndMetricsProvider({ children }) {
         localStorage.removeItem('usuario');
         localStorage.removeItem('nombre');
         setUserData(null);
-        window.location.href = '/';
+        window.location.href = '/#/';
       }
     } catch (error) {
       // Si el error es 401 o 403, limpiar localStorage y redirigir al login
@@ -52,7 +52,7 @@ export function AuthAndMetricsProvider({ children }) {
         localStorage.removeItem('usuario');
         localStorage.removeItem('nombre');
         setUserData(null);
-        window.location.href = '/';
+        window.location.href = '/#/';
       } else {
         console.error('Error al obtener datos del usuario en el contexto:', error);
         setUserData(null);

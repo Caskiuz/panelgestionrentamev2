@@ -5,6 +5,7 @@ import logo from '../images/logo.png';
 import Swal from 'sweetalert2';
 // ICONOS react-icons
 import { FaEye, FaEyeSlash, FaUser, FaLock } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 export default function Index() {
   const [usuario, setUsuario] = useState('');
@@ -12,6 +13,7 @@ export default function Index() {
   const input_usuario = useRef();
   const input_contraseña = useRef();
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
 
   function capture_contraseña() {
     setContraseña(input_contraseña.current.value);
@@ -50,8 +52,8 @@ export default function Index() {
       localStorage.setItem('usuario', data.response.usuario);
       localStorage.setItem('nombre', data.response.nombre);
 
-      window.location.href = `${window.location.origin}/Homepage`;
       Swal.close();
+      navigate('/Homepage', { replace: true });
       return data.response;
     } catch (error) {
       Swal.fire({
