@@ -104,12 +104,14 @@ export function AuthAndMetricsProvider({ children }) {
   };
 
   useEffect(() => {
+    console.log('[AuthAndMetricsContext] useEffect: inicio');
     fetchUserData();
     fetchGlobalMetrics(); // Llama a la función de métricas si es que existe
   }, []); // Se ejecuta una sola vez al montar el proveedor
 
   // Proveer los datos y un estado de carga a los componentes hijos
   if (isLoading) {
+    console.log('[AuthAndMetricsContext] Estado: isLoading');
     return (
       <div style={{width: '100vw', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f5f6fa'}}>
         <div style={{textAlign: 'center'}}>
@@ -117,10 +119,23 @@ export function AuthAndMetricsProvider({ children }) {
             <span className="visually-hidden">Cargando...</span>
           </div>
           <p style={{color: '#3B5A75', fontWeight: 'bold'}}>Cargando datos de sesión...</p>
+          <p style={{color: '#c00', fontWeight: 'bold'}}>[Depuración] isLoading: true</p>
         </div>
       </div>
     );
   }
+  if (!userData) {
+    console.log('[AuthAndMetricsContext] Estado: !userData, children:', children);
+    return (
+      <div style={{width: '100vw', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#fff0f0'}}>
+        <div style={{textAlign: 'center'}}>
+          <p style={{color: '#c00', fontWeight: 'bold', fontSize: '1.2rem'}}>[Depuración] No autenticado. userData: null</p>
+          <p style={{color: '#c00', fontWeight: 'bold', fontSize: '1.2rem'}}>¿Debería verse el login aquí?</p>
+        </div>
+      </div>
+    );
+  }
+  console.log('[AuthAndMetricsContext] Estado: autenticado, userData:', userData);
   return (
     <AuthAndMetricsContext.Provider value={{ userData, globalMetrics, isLoading, fetchUserData, fetchGlobalMetrics }}>
       {children}
