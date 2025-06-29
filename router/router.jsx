@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createHashRouter } from "react-router-dom";
 import Index from "../src/pages/index";
 import Homepage from "../src/pages/Homepage";
 import Create_users from "../src/pages/users/create_users";
@@ -30,7 +30,7 @@ import NotFound from "../src/pages/NotFound";
 import CobroGestApp from "../src/cobrogest/src/App";
 
 
-const router = createBrowserRouter([
+const router = createHashRouter([
   { path: "/", element: <ProtectLogin><Index /></ProtectLogin> },
   { path: "/Homepage", element: <ProtectSistem/>, children:[{index:true, element:<Homepage/>}] },
   { path: "/create_users", element: <ProtectAccess/>, children:[{index:true, element:<Create_users/> }]},
