@@ -19,26 +19,23 @@ export function AuthAndMetricsProvider({ children }) {
     setIsLoading(true);
     const usuario = localStorage.getItem('usuario');
     const token = localStorage.getItem('token');
-
+    console.log('[AuthAndMetricsContext] fetchUserData: usuario', usuario, 'token', token);
     if (!usuario || !token) {
-      // No mostrar advertencia al usuario final, solo salir silenciosamente
+      console.log('[AuthAndMetricsContext] fetchUserData: No usuario/token');
       setUserData(null);
       setIsLoading(false);
       return;
     }
-
     try {
-      // Ajusta esta URL si tu API para obtener datos de admin ha cambiado
       const response = await axios.get(`https://backrecordatoriorenta-production.up.railway.app/api/admins/read_especific?usuario=${usuario}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
-      // Asumimos que la API devuelve un array y tomamos el primer elemento
+      console.log('[AuthAndMetricsContext] fetchUserData: response', response);
       if (response.data && response.data.response && response.data.response.length > 0) {
-        setUserData(response.data.response[0]); // Guarda todo el objeto del usuario
+        setUserData(response.data.response[0]);
       } else {
-        // Si la respuesta es vacía, limpiar localStorage y redirigir al login
         localStorage.removeItem('token');
         localStorage.removeItem('usuario');
         localStorage.removeItem('nombre');
@@ -46,7 +43,7 @@ export function AuthAndMetricsProvider({ children }) {
         window.location.href = '/#/';
       }
     } catch (error) {
-      // Si el error es 401 o 403, limpiar localStorage y redirigir al login
+      console.error('[AuthAndMetricsContext] fetchUserData: error', error);
       if (error.response && (error.response.status === 401 || error.response.status === 403)) {
         localStorage.removeItem('token');
         localStorage.removeItem('usuario');
@@ -54,10 +51,10 @@ export function AuthAndMetricsProvider({ children }) {
         setUserData(null);
         window.location.href = '/#/';
       } else {
-        console.error('Error al obtener datos del usuario en el contexto:', error);
         setUserData(null);
       }
     } finally {
+      console.log('[AuthAndMetricsContext] fetchUserData: finally, setIsLoading(false)');
       setIsLoading(false);
     }
   };
@@ -67,12 +64,10 @@ export function AuthAndMetricsProvider({ children }) {
     const token = localStorage.getItem('token');
     const axiosConfig = { headers: { Authorization: `Bearer ${token}` } };
     try {
-      // Deudas pendientes (rentas no pagadas)
       const { data: rentasData } = await axios.get('https://backrecordatoriorenta-production.up.railway.app/api/rentas/', axiosConfig);
       const rentas = rentasData.response || [];
       const deudasPendientes = rentas.filter(r => r.estado_renta !== 'Pagada');
       const totalDeudasPendientes = deudasPendientes.reduce((sum, r) => sum + parseFloat(r.total_renta || 0), 0);
-      // Pagos recibidos del mes (rentas pagadas este mes)
       const now = new Date();
       const mesActual = now.getMonth();
       const anioActual = now.getFullYear();
@@ -84,17 +79,17 @@ export function AuthAndMetricsProvider({ children }) {
         return false;
       });
       const totalPagosMes = pagosMes.reduce((sum, r) => sum + parseFloat(r.total_renta || 0), 0);
-      // Clientes activos (clientes con al menos una renta activa o pagada)
       const { data: clientesData } = await axios.get('https://backrecordatoriorenta-production.up.railway.app/api/clients', axiosConfig);
       const clientes = clientesData.response || [];
-      // Si quieres solo clientes con rentas activas, puedes filtrar aquí
       const clientesActivos = clientes.length;
       setGlobalMetrics({
         deudasPendientes: `$${totalDeudasPendientes.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
         pagosRecibidosMes: `$${totalPagosMes.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
         clientesActivos: clientesActivos.toString()
       });
+      console.log('[AuthAndMetricsContext] fetchGlobalMetrics: OK');
     } catch (error) {
+      console.error('[AuthAndMetricsContext] fetchGlobalMetrics: error', error);
       setGlobalMetrics({
         deudasPendientes: 'N/A',
         pagosRecibidosMes: 'N/A',
@@ -106,7 +101,13 @@ export function AuthAndMetricsProvider({ children }) {
   useEffect(() => {
     console.log('[AuthAndMetricsContext] useEffect: inicio');
     fetchUserData();
-    fetchGlobalMetrics(); // Llama a la función de métricas si es que existe
+    fetchGlobalMetrics();
+    // Timeout de emergencia para desbloquear loading
+    const timeout = setTimeout(() => {
+      setIsLoading(false);
+      console.warn('[AuthAndMetricsContext] Timeout de emergencia: forzando fin de loading');
+    }, 8000);
+    return () => clearTimeout(timeout);
   }, []); // Se ejecuta una sola vez al montar el proveedor
 
   // Proveer los datos y un estado de carga a los componentes hijos
