@@ -1,143 +1,165 @@
 import React, { useState, useEffect } from 'react';
-import { v4 as uuidv4 } from 'uuid'; // Para generar IDs únicos
-import dayjs from 'dayjs'; // Para manejar fechas
-import isToday from 'dayjs/plugin/isToday'; // Plugin para verificar si es hoy
-import isYesterday from 'dayjs/plugin/isYesterday'; // Plugin para verificar si es ayer
-import isBetween from 'dayjs/plugin/isBetween'; // Plugin para verificar si está entre fechas
+import axios from 'axios';
+import dayjs from 'dayjs';
 import CobroGestSidebar from '../components/CobroGestSidebar';
 import { useAuthAndMetrics } from '../../../context/AuthAndMetricsContext';
-import { loadDebts, saveDebts } from '../utils/dataStorage'; // Importa las utilidades de almacenamiento
-import { PlusCircle, Calendar, Users, DollarSign, Edit, Trash2 } from 'lucide-react'; // Iconos
+import { PlusCircle, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
 
-dayjs.extend(isToday);
-dayjs.extend(isYesterday);
-dayjs.extend(isBetween);
+const API_BASE = 'https://backrecordatoriorenta-production.up.railway.app/api/rentas';
 
 function DebtsPage() {
   const { userData, isLoading } = useAuthAndMetrics();
-  const [debts, setDebts] = useState([]);
+  const [rentas, setRentas] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newDebt, setNewDebt] = useState({
-    clientName: '',
-    amount: '',
-    dueDate: dayjs().format('YYYY-MM-DD'), // Fecha de hoy por defecto
-    description: '',
-    isPaid: false,
+  const [newRenta, setNewRenta] = useState({
+    nombre: '',
+    telefono: '',
+    direccion: '',
+    fecha_renta: dayjs().format('YYYY-MM-DD'),
+    hora_renta: '',
+    fecha_vencimiento: dayjs().format('YYYY-MM-DD'),
+    productos: [],
+    total_renta: '',
+    fotos_estado_inicial: [],
+    IVA: false,
   });
-  const [editingDebtId, setEditingDebtId] = useState(null); // Para saber qué deuda estamos editando
+  const [editingRentaId, setEditingRentaId] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  // Cargar deudas al inicio
+  // Obtener token
+  const token = localStorage.getItem('token');
+  const axiosConfig = { headers: { Authorization: `Bearer ${token}` } };
+
+  // Cargar rentas desde backend
+  const fetchRentas = async () => {
+    setLoading(true);
+    setErrorMsg("");
+    try {
+      const { data } = await axios.get(`${API_BASE}/`, axiosConfig);
+      setRentas(data.response || []);
+    } catch (e) {
+      setErrorMsg(e?.response?.data?.message || 'Error al cargar rentas');
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
-    setDebts(loadDebts());
+    fetchRentas();
+    // eslint-disable-next-line
   }, []);
-
-  // Guardar deudas cada vez que el estado 'debts' cambia
-  useEffect(() => {
-    saveDebts(debts);
-  }, [debts]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setNewDebt({ ...newDebt, [name]: value });
+    setNewRenta({ ...newRenta, [name]: value });
   };
 
-  const handleAddOrUpdateDebt = (e) => {
+  const handleAddOrUpdateRenta = async (e) => {
     e.preventDefault();
-    if (!newDebt.clientName || !newDebt.amount || !newDebt.dueDate) {
-      alert('Por favor, completa todos los campos requeridos (Cliente, Monto, Fecha de Vencimiento).');
+    setErrorMsg("");
+    if (!newRenta.nombre || !newRenta.telefono || !newRenta.direccion || !newRenta.fecha_renta || !newRenta.total_renta) {
+      setErrorMsg('Por favor, completa todos los campos requeridos.');
       return;
     }
-
-    if (editingDebtId) {
-      // Actualizar deuda existente
-      setDebts(debts.map(debt =>
-        debt.id === editingDebtId ? { ...newDebt, id: editingDebtId } : debt
-      ));
-      setEditingDebtId(null);
-    } else {
-      // Añadir nueva deuda
-      setDebts([...debts, { ...newDebt, id: uuidv4() }]);
+    setLoading(true);
+    try {
+      if (editingRentaId) {
+        // Editar renta
+        await axios.put(`${API_BASE}/update/${editingRentaId}`, newRenta, axiosConfig);
+      } else {
+        // Crear renta
+        await axios.post(`${API_BASE}/create`, newRenta, axiosConfig);
+      }
+      setShowAddForm(false);
+      setEditingRentaId(null);
+      setNewRenta({ nombre: '', telefono: '', direccion: '', fecha_renta: dayjs().format('YYYY-MM-DD'), hora_renta: '', fecha_vencimiento: dayjs().format('YYYY-MM-DD'), productos: [], total_renta: '', fotos_estado_inicial: [], IVA: false });
+      fetchRentas();
+    } catch (e) {
+      setErrorMsg(e?.response?.data?.message || 'Error al guardar la renta');
     }
-    setNewDebt({ clientName: '', amount: '', dueDate: dayjs().format('YYYY-MM-DD'), description: '', isPaid: false });
-    setShowAddForm(false);
+    setLoading(false);
   };
 
-  const handleEditDebt = (debtId) => {
-    const debtToEdit = debts.find(debt => debt.id === debtId);
-    if (debtToEdit) {
-      setNewDebt(debtToEdit);
-      setEditingDebtId(debtId);
+  const handleEditRenta = (rentaId) => {
+    const rentaToEdit = rentas.find(renta => renta._id === rentaId);
+    if (rentaToEdit) {
+      setNewRenta({
+        nombre: rentaToEdit.nombre || '',
+        telefono: rentaToEdit.telefono || '',
+        direccion: rentaToEdit.direccion || '',
+        fecha_renta: rentaToEdit.fecha_renta ? dayjs(rentaToEdit.fecha_renta).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+        hora_renta: rentaToEdit.hora_renta || '',
+        fecha_vencimiento: rentaToEdit.fecha_vencimiento ? dayjs(rentaToEdit.fecha_vencimiento).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+        productos: rentaToEdit.productos || [],
+        total_renta: rentaToEdit.total_renta || '',
+        fotos_estado_inicial: rentaToEdit.fotos_estado_inicial || [],
+        IVA: rentaToEdit.IVA || false,
+      });
+      setEditingRentaId(rentaId);
       setShowAddForm(true);
     }
   };
 
-  const handleDeleteDebt = (debtId) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar esta deuda?')) {
-      setDebts(debts.filter(debt => debt.id !== debtId));
+  const handleDeleteRenta = async (rentaId) => {
+    if (window.confirm('¿Estás seguro de que quieres eliminar esta renta?')) {
+      setLoading(true);
+      setErrorMsg("");
+      try {
+        await axios.delete(`${API_BASE}/delete`, { ...axiosConfig, data: { _id: rentaId } });
+        fetchRentas();
+      } catch (e) {
+        setErrorMsg(e?.response?.data?.message || 'Error al eliminar la renta');
+      }
+      setLoading(false);
     }
   };
 
-  const handleTogglePaid = (debtId) => {
-    setDebts(debts.map(debt =>
-      debt.id === debtId ? { ...debt, isPaid: !debt.isPaid } : debt
-    ));
-  };
-
-  const getStatus = (dueDate, isPaid) => {
-    if (isPaid) return 'Pagada';
-    const due = dayjs(dueDate);
-    const today = dayjs();
-
-    if (due.isBefore(today, 'day')) return 'Atrasada';
-    if (due.isSame(today, 'day')) return 'Hoy';
-    if (due.isAfter(today, 'day')) return 'Pendiente';
-    return '';
+  const getStatus = (estado_renta) => {
+    switch (estado_renta) {
+      case 'Pagada': return 'Pagada';
+      case 'Vencido': return 'Atrasada';
+      case 'Activo': return 'Pendiente';
+      default: return estado_renta;
+    }
   };
 
   const getStatusClass = (status) => {
     switch (status) {
       case 'Pagada': return 'text-green-600 bg-green-100';
       case 'Atrasada': return 'text-red-600 bg-red-100';
-      case 'Hoy': return 'text-orange-600 bg-orange-100';
       case 'Pendiente': return 'text-blue-600 bg-blue-100';
       default: return '';
     }
   };
 
-  if (isLoading || !userData) {
+  if (isLoading || !userData || loading) {
     return <div className="flex items-center justify-center min-h-screen">Cargando...</div>;
   }
 
   return (
-    <div className="flex h-screen bg-gray-100 font-sans">
+    <div className="flex min-h-screen bg-gradient-to-br from-[#C70000] to-[#0D6EFD] font-sans">
       <CobroGestSidebar />
-      <main className="flex-1 p-8 overflow-y-auto bg-gray-100">
+      <main className="flex-1 p-2 md:p-8 overflow-y-auto bg-gray-100 min-h-screen md:ml-0 md:pl-64 transition-all duration-300">
         <header className="flex justify-between items-center bg-white p-6 rounded-xl shadow-md mb-8">
           <h1 className="text-4xl font-extrabold text-gray-900">
-            Deudas por Cobrar
+            Gestión de Cobros/Rentas
           </h1>
-          <button
-            onClick={() => { setShowAddForm(true); setEditingDebtId(null); setNewDebt({ clientName: '', amount: '', dueDate: dayjs().format('YYYY-MM-DD'), description: '', isPaid: false }); }}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 flex items-center gap-2"
-          >
-            <PlusCircle className="w-5 h-5" />
-            Añadir Nueva Deuda
-          </button>
         </header>
 
-        {/* Formulario para añadir/editar deuda */}
+        {/* Formulario para añadir/editar renta */}
         {showAddForm && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
-              <h2 className="text-2xl font-bold mb-4">{editingDebtId ? 'Editar Deuda' : 'Añadir Nueva Deuda'}</h2>
-              <form onSubmit={handleAddOrUpdateDebt} className="space-y-4">
+              <h2 className="text-2xl font-bold mb-4">{editingRentaId ? 'Editar Renta' : 'Añadir Nueva Renta'}</h2>
+              {errorMsg && <div className="mb-4 text-red-600 font-semibold text-sm">{errorMsg}</div>}
+              <form onSubmit={handleAddOrUpdateRenta} className="space-y-4">
                 <div>
-                  <label htmlFor="clientName" className="block text-gray-700 text-sm font-semibold mb-2">Cliente:</label>
+                  <label htmlFor="nombre" className="block text-gray-700 text-sm font-semibold mb-2">Cliente:</label>
                   <input
                     type="text"
-                    id="clientName"
-                    name="clientName"
-                    value={newDebt.clientName}
+                    id="nombre"
+                    name="nombre"
+                    value={newRenta.nombre}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Nombre del cliente"
@@ -145,56 +167,96 @@ function DebtsPage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="amount" className="block text-gray-700 text-sm font-semibold mb-2">Monto:</label>
+                  <label htmlFor="telefono" className="block text-gray-700 text-sm font-semibold mb-2">Teléfono:</label>
                   <input
-                    type="number"
-                    id="amount"
-                    name="amount"
-                    value={newDebt.amount}
+                    type="text"
+                    id="telefono"
+                    name="telefono"
+                    value={newRenta.telefono}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Monto de la deuda"
+                    placeholder="Teléfono del cliente"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="direccion" className="block text-gray-700 text-sm font-semibold mb-2">Dirección:</label>
+                  <input
+                    type="text"
+                    id="direccion"
+                    name="direccion"
+                    value={newRenta.direccion}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Dirección de la renta"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="fecha_renta" className="block text-gray-700 text-sm font-semibold mb-2">Fecha de Renta:</label>
+                  <input
+                    type="date"
+                    id="fecha_renta"
+                    name="fecha_renta"
+                    value={newRenta.fecha_renta}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="hora_renta" className="block text-gray-700 text-sm font-semibold mb-2">Hora de Renta:</label>
+                  <input
+                    type="time"
+                    id="hora_renta"
+                    name="hora_renta"
+                    value={newRenta.hora_renta}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="fecha_vencimiento" className="block text-gray-700 text-sm font-semibold mb-2">Fecha de Vencimiento:</label>
+                  <input
+                    type="date"
+                    id="fecha_vencimiento"
+                    name="fecha_vencimiento"
+                    value={newRenta.fecha_vencimiento}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="total_renta" className="block text-gray-700 text-sm font-semibold mb-2">Total de Renta:</label>
+                  <input
+                    type="number"
+                    id="total_renta"
+                    name="total_renta"
+                    value={newRenta.total_renta}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Total de la renta"
                     step="0.01"
                     required
                   />
                 </div>
-                <div>
-                  <label htmlFor="dueDate" className="block text-gray-700 text-sm font-semibold mb-2">Fecha de Vencimiento:</label>
-                  <input
-                    type="date"
-                    id="dueDate"
-                    name="dueDate"
-                    value={newDebt.dueDate}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="description" className="block text-gray-700 text-sm font-semibold mb-2">Descripción (opcional):</label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    value={newDebt.description}
-                    onChange={handleInputChange}
-                    rows="3"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Detalles adicionales sobre la deuda"
-                  ></textarea>
-                </div>
                 <div className="flex justify-end gap-4">
                   <button
                     type="button"
-                    onClick={() => setShowAddForm(false)}
+                    onClick={() => { setShowAddForm(false); setErrorMsg(""); }}
                     className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg shadow-md transition duration-300"
+                    disabled={loading}
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300"
+                    className={`bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    disabled={loading}
                   >
-                    {editingDebtId ? 'Actualizar Deuda' : 'Guardar Deuda'}
+                    {loading ? 'Guardando...' : (editingRentaId ? 'Actualizar Renta' : 'Guardar Renta')}
                   </button>
                 </div>
               </form>
@@ -202,90 +264,64 @@ function DebtsPage() {
           </div>
         )}
 
-        {/* Listado de Deudas */}
-        <section className="bg-white p-6 rounded-xl shadow-inner mt-8">
-          <h3 className="text-2xl font-semibold text-gray-800 mb-4">Listado de Deudas</h3>
-          {debts.length === 0 ? (
-            <p className="text-gray-600 text-center py-8">No hay deudas registradas.</p>
+        {/* Listado de Rentas/Deudas */}
+        <section className="bg-white p-4 md:p-6 rounded-xl shadow-inner mt-8">
+          <h3 className="text-xl md:text-2xl font-semibold text-gray-800 mb-4">Listado de Rentas</h3>
+          {errorMsg && <div className="mb-4 text-red-600 font-semibold text-sm">{errorMsg}</div>}
+          {rentas.length === 0 && !loading ? (
+            <p className="text-gray-600 text-center py-8">No hay rentas registradas.</p>
+          ) : loading ? (
+            <div className="text-center py-8 text-blue-600 font-semibold">Cargando rentas...</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+            <div className="overflow-x-auto w-full">
+              <table className="min-w-[900px] w-full divide-y divide-gray-200 text-xs md:text-sm">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Cliente
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Monto
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Vencimiento
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Descripción
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Estado
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Acciones
-                    </th>
+                    <th className="px-2 md:px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                    <th className="px-2 md:px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Teléfono</th>
+                    <th className="px-2 md:px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Dirección</th>
+                    <th className="px-2 md:px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Fecha Renta</th>
+                    <th className="px-2 md:px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Fecha Vencimiento</th>
+                    <th className="px-2 md:px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                    <th className="px-2 md:px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {debts.map((debt) => {
-                    const status = getStatus(debt.dueDate, debt.isPaid);
-                    return (
-                      <tr key={debt.id} className={`${debt.isPaid ? 'opacity-70 line-through' : ''}`}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{debt.clientName}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${parseFloat(debt.amount).toFixed(2)}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                          {dayjs(debt.dueDate).format('DD/MM/YYYY')}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{debt.description || '-'}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(status)}`}>
-                            {status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleTogglePaid(debt.id)}
-                              className={`p-2 rounded-full text-white ${debt.isPaid ? 'bg-gray-500' : 'bg-green-500 hover:bg-green-600'}`}
-                              title={debt.isPaid ? 'Marcar como Pendiente' : 'Marcar como Pagada'}
-                            >
-                              {debt.isPaid ? (
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                                  <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.07L3.01 8.252a.735.735 0 0 1 .01-1.05.733.733 0 0 1 1.047 0L7.006 10.23l5.05-5.262z"/>
-                                </svg>
-                              ) : (
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                                  <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7.000 7a.5.5 0 0 1-.708 0l-3.500-3.5a.5.5 0 1 1 .708-.708L6.500 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
-                                </svg>
-                              )}
-                            </button>
-                            {!debt.isPaid && (
-                              <button
-                                onClick={() => handleEditDebt(debt.id)}
-                                className="p-2 rounded-full bg-yellow-500 hover:bg-yellow-600 text-white"
-                                title="Editar"
-                              >
-                                <Edit className="w-5 h-5" />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleDeleteDebt(debt.id)}
-                              className="p-2 rounded-full bg-red-500 hover:bg-red-600 text-white"
-                              title="Eliminar"
-                            >
-                              <Trash2 className="w-5 h-5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {rentas.map((renta) => (
+                    <tr key={renta._id} className="hover:bg-gray-50">
+                      <td className="px-2 md:px-6 py-4 whitespace-nowrap font-medium text-gray-900 max-w-[120px] truncate" title={renta.nombre}>{renta.nombre}</td>
+                      <td className="px-2 md:px-6 py-4 whitespace-nowrap text-gray-700 max-w-[100px] truncate" title={renta.telefono}>{renta.telefono}</td>
+                      <td className="px-2 md:px-6 py-4 whitespace-nowrap text-gray-700 max-w-[120px] truncate" title={renta.direccion}>{renta.direccion}</td>
+                      <td className="px-2 md:px-6 py-4 whitespace-nowrap text-gray-700">{renta.fecha_renta}</td>
+                      <td className="px-2 md:px-6 py-4 whitespace-nowrap text-gray-700">{renta.fecha_vencimiento}</td>
+                      <td className="px-2 md:px-6 py-4 whitespace-nowrap text-gray-700">${parseFloat(renta.total_renta || 0).toFixed(2)}</td>
+                      <td className="px-2 md:px-6 py-4 whitespace-nowrap font-medium">
+                        <div className="flex gap-2 flex-wrap">
+                          <button
+                            onClick={() => handleTogglePaid(renta._id)}
+                            className={`p-2 rounded-full text-white ${renta.estado_renta === 'Pagada' ? 'bg-gray-500' : 'bg-green-500 hover:bg-green-600'}`}
+                            title={renta.estado_renta === 'Pagada' ? 'Marcar como Pendiente' : 'Marcar como Pagada'}
+                          >
+                            {renta.estado_renta === 'Pagada' ? <XCircle className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}
+                          </button>
+                          <button
+                            onClick={() => handleEditRenta(renta._id)}
+                            className="p-2 rounded-full bg-yellow-500 hover:bg-yellow-600 text-white"
+                            title="Editar"
+                          >
+                            <Edit className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteRenta(renta._id)}
+                            className="p-2 rounded-full bg-red-500 hover:bg-red-600 text-white"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

@@ -3,6 +3,12 @@
 const DEBTS_KEY = 'cobrogest_debts';
 const SERVICES_KEY = 'cobrogest_services';
 
+// === CLIENTES ===
+const CLIENTS_KEY = 'cobrogest_clients';
+
+// === PAGOS ===
+const PAYMENTS_KEY = 'cobrogest_payments';
+
 /**
  * Carga las deudas desde localStorage.
  * @returns {Array} Un array de objetos de deuda.
@@ -60,5 +66,51 @@ export const saveServices = (services) => {
     localStorage.setItem(SERVICES_KEY, serializedServices);
   } catch (error) {
     console.error("Error al guardar servicios en localStorage:", error);
+  }
+};
+
+// === CLIENTES ===
+export const loadClients = () => {
+  try {
+    const serializedClients = localStorage.getItem(CLIENTS_KEY);
+    if (serializedClients === null) {
+      return [];
+    }
+    return JSON.parse(serializedClients);
+  } catch (error) {
+    console.error("Error al cargar clientes de localStorage:", error);
+    return [];
+  }
+};
+
+export const saveClients = (clients) => {
+  try {
+    const serializedClients = JSON.stringify(clients);
+    localStorage.setItem(CLIENTS_KEY, serializedClients);
+  } catch (error) {
+    console.error("Error al guardar clientes en localStorage:", error);
+  }
+};
+
+// === PAGOS ===
+export const loadPayments = () => {
+  try {
+    const serializedPayments = localStorage.getItem(PAYMENTS_KEY);
+    if (serializedPayments === null) {
+      return [];
+    }
+    return JSON.parse(serializedPayments);
+  } catch (error) {
+    console.error("Error al cargar pagos de localStorage:", error);
+    return [];
+  }
+};
+
+export const savePayments = (payments) => {
+  try {
+    const serializedPayments = JSON.stringify(payments);
+    localStorage.setItem(PAYMENTS_KEY, serializedPayments);
+  } catch (error) {
+    console.error("Error al guardar pagos en localStorage:", error);
   }
 };

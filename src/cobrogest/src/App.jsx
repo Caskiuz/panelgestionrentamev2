@@ -14,6 +14,8 @@ import DebtsPage from './pages/Debts';     // Vamos a crear esta
 import PaymentsPage from './pages/Payments'; // Vamos a crear esta
 import ServicesPage from './pages/Services'; // Vamos a crear esta
 import SettingsPage from './pages/Settings'; // Vamos a crear esta (si es diferente a la de Dashboard anterior)
+import NotasRemisionPage from './pages/NotasRemision'; // Nueva página para Notas de Remisión
+import ProductsPage from './pages/Products'; // Nueva página para Productos
 
 // Componente PrivateRoute, ahora solo verifica si hay un token.
 // Redirige al login principal si el token no existe.
@@ -88,6 +90,22 @@ export default function CobroGestRoutes() {
         element={
           <PrivateRoute>
             <SettingsPage />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/notas-remision" // /cobrogest/notas-remision
+        element={
+          <PrivateRoute>
+            <NotasRemisionPage />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/products" // /cobrogest/products
+        element={
+          <PrivateRoute>
+            <ProductsPage />
           </PrivateRoute>
         }
       />
