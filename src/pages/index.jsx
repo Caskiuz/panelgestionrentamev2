@@ -1,9 +1,8 @@
 import React, { useRef, useState } from 'react';
-import axios from 'axios'; // <-- IMPORTANTE
+import axios from 'axios';
 import background from '../images/background_index.jpg';
 import logo from '../images/logo.png';
 import Swal from 'sweetalert2';
-// ICONOS react-icons
 import { FaEye, FaEyeSlash, FaUser, FaLock } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
@@ -13,6 +12,7 @@ export default function Index() {
   const input_usuario = useRef();
   const input_contraseña = useRef();
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   function capture_contraseña() {
@@ -24,6 +24,7 @@ export default function Index() {
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
   async function login() {
+    setError(null);
     const datos = {
       usuario: usuario,
       contraseña: contraseña
@@ -39,21 +40,17 @@ export default function Index() {
         }
       });
       const { data } = await axios.post(`https://backrecordatoriorenta-production.up.railway.app/api/admins/login`, datos);
-
       let token = data.response.token;
       localStorage.setItem('token', token);
       localStorage.setItem('usuario', data.response.usuario);
       localStorage.setItem('nombre', data.response.nombre);
-
       Swal.close();
       navigate('/Homepage', { replace: true });
       return data.response;
     } catch (error) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'El usuario o contraseña son incorrectos'
-      });
+      Swal.close();
+      setError('El usuario o contraseña son incorrectos');
+      console.error('[Login] Error en login:', error);
     }
   }
 
@@ -95,7 +92,6 @@ export default function Index() {
             <span
               className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-blue-600"
               onClick={togglePasswordVisibility}
-              data-bs-toggle="tooltip"
               title="Mostrar/Ocultar contraseña"
             >
               {showPassword ? (
@@ -106,6 +102,11 @@ export default function Index() {
             </span>
           </div>
         </div>
+        {error && (
+          <div className="w-full text-center text-red-600 font-bold mb-2">
+            {error}
+          </div>
+        )}
         <div className="w-full flex justify-center items-center mt-2">
           <button
             onClick={login}
