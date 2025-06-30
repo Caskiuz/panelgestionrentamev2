@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import background from '../images/background_index.jpg';
 
 export default function Index() {
   const [usuario, setUsuario] = useState('');
@@ -17,7 +18,7 @@ export default function Index() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f0f0' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundImage: `url(${background})`, backgroundSize: 'cover' }}>
       <form onSubmit={login} style={{ background: '#fff', padding: 32, borderRadius: 8, boxShadow: '0 2px 8px #0002', minWidth: 320 }}>
         <h2 style={{ marginBottom: 24 }}>Login ultra básico</h2>
         <div style={{ marginBottom: 16 }}>
