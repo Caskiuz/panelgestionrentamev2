@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import Gallery from 'react-photo-gallery';
+import Lightbox from 'yet-another-react-lightbox';
+import 'yet-another-react-lightbox/styles.css';
 import axios from 'axios';
 
 export default function ImageCollectionRentas() {
@@ -8,20 +9,15 @@ export default function ImageCollectionRentas() {
   const [fotosInicial, setFotosInicial] = useState([]);
   const [fotosDevolucion, setFotosDevolucion] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [index, setIndex] = useState(0);
+  const [activeGallery, setActiveGallery] = useState('inicial');
 
   async function get() {
     try {
       const { data } = await axios.get(`https://backrecordatoriorenta-production.up.railway.app/api/rentas/read_especific?_id=${_id}`);
-      const fotosArray = (data.response[0]?.fotos_estado_inicial || []).map(url => ({
-        src: url,
-        width: 4,
-        height: 3,
-      }));
-      const fotosArray2 = (data.response[0]?.fotos_estado_devolucion || []).map(url => ({
-        src: url,
-        width: 4,
-        height: 3,
-      }));
+      const fotosArray = (data.response[0]?.fotos_estado_inicial || []).map(url => ({ src: url }));
+      const fotosArray2 = (data.response[0]?.fotos_estado_devolucion || []).map(url => ({ src: url }));
       setFotosInicial(fotosArray);
       setFotosDevolucion(fotosArray2);
       setLoading(false);
@@ -47,7 +43,17 @@ export default function ImageCollectionRentas() {
             {fotosInicial.length === 0 ? (
               <div className="text-gray-300">No hay imágenes de entrega.</div>
             ) : (
-              <Gallery photos={fotosInicial} direction="row" />
+              <div className="flex flex-wrap gap-2">
+                {fotosInicial.map((img, i) => (
+                  <img
+                    key={i}
+                    src={img.src}
+                    alt=""
+                    className="w-32 h-32 object-cover cursor-pointer rounded shadow"
+                    onClick={() => { setIndex(i); setActiveGallery('inicial'); setOpen(true); }}
+                  />
+                ))}
+              </div>
             )}
           </div>
           <div className="flex-1">
@@ -55,9 +61,25 @@ export default function ImageCollectionRentas() {
             {fotosDevolucion.length === 0 ? (
               <div className="text-gray-300">No hay imágenes de devolución.</div>
             ) : (
-              <Gallery photos={fotosDevolucion} direction="row" />
+              <div className="flex flex-wrap gap-2">
+                {fotosDevolucion.map((img, i) => (
+                  <img
+                    key={i}
+                    src={img.src}
+                    alt=""
+                    className="w-32 h-32 object-cover cursor-pointer rounded shadow"
+                    onClick={() => { setIndex(i); setActiveGallery('devolucion'); setOpen(true); }}
+                  />
+                ))}
+              </div>
             )}
           </div>
+          <Lightbox
+            open={open}
+            close={() => setOpen(false)}
+            index={index}
+            slides={activeGallery === 'inicial' ? fotosInicial : fotosDevolucion}
+          />
         </div>
       )}
     </div>

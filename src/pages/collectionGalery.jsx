@@ -1,34 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import Gallery from 'react-photo-gallery';
+import Lightbox from 'yet-another-react-lightbox';
+import 'yet-another-react-lightbox/styles.css';
 import axios from 'axios';
 
 export default function CollectionGalery() {
   const { _id } = useParams();
   const [fotos, setFotos] = useState([]);
-  console.log(fotos);
   const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [index, setIndex] = useState(0);
 
-async function get() {
+  async function get() {
     try {
-        const {data}=await axios.get(`https://backrecordatoriorenta-production.up.railway.app/api/notas_remision/read_especific?_id=${_id}`)
-    // data.response[0].fotos debe ser un array de URLs
-    const fotosArray = (data.response[0]?.fotos || []).map(url => ({
-      src: url,
-      width: 4,   // Puedes ajustar el aspect ratio según tus imágenes
-      height: 3,
-    }));
-    setFotos(fotosArray);
-    setLoading(false);
-
-        return data.response
+      const {data}=await axios.get(`https://backrecordatoriorenta-production.up.railway.app/api/notas_remision/read_especific?_id=${_id}`)
+      const fotosArray = (data.response[0]?.fotos || []).map(url => ({ src: url }));
+      setFotos(fotosArray);
+      setLoading(false);
+      return data.response;
     } catch (error) {
-        setLoading(false);
+      setLoading(false);
     }
-}
+  }
 
   useEffect(() => {
- get()
+    get();
   }, [_id]);
 
   return (
@@ -39,7 +35,23 @@ async function get() {
       ) : fotos.length === 0 ? (
         <div>No hay imágenes para mostrar.</div>
       ) : (
-        <Gallery photos={fotos} direction="row" />
+        <div className="flex flex-wrap gap-2">
+          {fotos.map((img, i) => (
+            <img
+              key={i}
+              src={img.src}
+              alt=""
+              className="w-32 h-32 object-cover cursor-pointer rounded shadow"
+              onClick={() => { setIndex(i); setOpen(true); }}
+            />
+          ))}
+          <Lightbox
+            open={open}
+            close={() => setOpen(false)}
+            index={index}
+            slides={fotos}
+          />
+        </div>
       )}
     </div>
   );
