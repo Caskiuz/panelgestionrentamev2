@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import axios from 'axios'; // <-- IMPORTANTE
 import background from '../images/background_index.jpg';
 import logo from '../images/logo.png';
@@ -22,21 +22,6 @@ export default function Index() {
     setUsuario(input_usuario.current.value);
   }
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
-
-  useEffect(() => {
-    // Inicializar tooltips bootstrap si existen, pero solo si window.bootstrap está disponible
-    try {
-      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-      if (window.bootstrap && window.bootstrap.Tooltip) {
-        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new window.bootstrap.Tooltip(tooltipTriggerEl));
-        return () => tooltipList.forEach(tooltip => tooltip.dispose());
-      } else {
-        console.warn('[Login] Bootstrap no está disponible en window.bootstrap. Tooltips deshabilitados.');
-      }
-    } catch (e) {
-      console.error('[Login] Error inicializando tooltips Bootstrap:', e);
-    }
-  }, [showPassword]);
 
   async function login() {
     const datos = {
