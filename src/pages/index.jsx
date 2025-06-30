@@ -6,6 +6,33 @@ import Swal from 'sweetalert2';
 import { FaEye, FaEyeSlash, FaUser, FaLock } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
+
+// Error Boundary simple para mostrar errores en pantalla
+class LoginErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error('[Login] Error capturado por ErrorBoundary:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ background: '#fff', color: '#c00', padding: 32, fontWeight: 'bold', fontSize: 18 }}>
+          <p>Ocurrió un error en el login:</p>
+          <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{String(this.state.error)}</pre>
+          <p>Revisa la consola para más detalles.</p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function Index() {
   const [usuario, setUsuario] = useState('');
   const [contraseña, setContraseña] = useState('');
@@ -55,72 +82,74 @@ export default function Index() {
   }
 
   return (
-    <div
-      className="bg-cover w-full h-screen flex justify-center items-center relative"
-      style={{ backgroundImage: `url(${background})` }}
-    >
-      <div className="bg-white lg:w-[35%] w-[90%] rounded-[15px] items-center flex flex-col px-6 py-8 shadow-xl">
-        <img className="w-[10rem] mb-3" src={logo} alt="logo" />
-        <div className="mb-5 w-full flex flex-col gap-1">
-          <label htmlFor="usuario" className="form-label font-semibold text-blue-900 flex items-center gap-2">
-            <FaUser className="text-blue-600" /> Usuario
-          </label>
-          <input
-            ref={input_usuario}
-            id="usuario"
-            autoComplete="username"
-            onChange={capture_usuario}
-            type="text"
-            className="form-control border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400"
-            placeholder="Nombre de usuario"
-          />
-        </div>
-        <div className="mb-5 w-full flex flex-col gap-1">
-          <label htmlFor="password" className="form-label font-semibold text-blue-900 flex items-center gap-2">
-            <FaLock className="text-blue-600" /> Contraseña
-          </label>
-          <div className="relative flex items-center">
+    <LoginErrorBoundary>
+      <div
+        className="bg-cover w-full h-screen flex justify-center items-center relative"
+        style={{ backgroundImage: `url(${background})` }}
+      >
+        <div className="bg-white lg:w-[35%] w-[90%] rounded-[15px] items-center flex flex-col px-6 py-8 shadow-xl">
+          <img className="w-[10rem] mb-3" src={logo} alt="logo" />
+          <div className="mb-5 w-full flex flex-col gap-1">
+            <label htmlFor="usuario" className="form-label font-semibold text-blue-900 flex items-center gap-2">
+              <FaUser className="text-blue-600" /> Usuario
+            </label>
             <input
-              ref={input_contraseña}
-              onChange={capture_contraseña}
-              type={showPassword ? "text" : "password"}
-              className="form-control border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-400"
-              id="password"
-              autoComplete="current-password"
-              placeholder="Contraseña"
+              ref={input_usuario}
+              id="usuario"
+              autoComplete="username"
+              onChange={capture_usuario}
+              type="text"
+              className="form-control border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400"
+              placeholder="Nombre de usuario"
             />
-            <span
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-blue-600"
-              onClick={togglePasswordVisibility}
-              title="Mostrar/Ocultar contraseña"
+          </div>
+          <div className="mb-5 w-full flex flex-col gap-1">
+            <label htmlFor="password" className="form-label font-semibold text-blue-900 flex items-center gap-2">
+              <FaLock className="text-blue-600" /> Contraseña
+            </label>
+            <div className="relative flex items-center">
+              <input
+                ref={input_contraseña}
+                onChange={capture_contraseña}
+                type={showPassword ? "text" : "password"}
+                className="form-control border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-400"
+                id="password"
+                autoComplete="current-password"
+                placeholder="Contraseña"
+              />
+              <span
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-blue-600"
+                onClick={togglePasswordVisibility}
+                title="Mostrar/Ocultar contraseña"
+              >
+                {showPassword ? (
+                  <FaEye className="w-5 h-5" />
+                ) : (
+                  <FaEyeSlash className="w-5 h-5" />
+                )}
+              </span>
+            </div>
+          </div>
+          {error && (
+            <div className="w-full text-center text-red-600 font-bold mb-2">
+              {error}
+            </div>
+          )}
+          <div className="w-full flex justify-center items-center mt-2">
+            <button
+              onClick={login}
+              className="bg-[#0D6EFD] hover:bg-[#0d81fd] px-10 py-2 rounded-lg font-bold text-lg text-white shadow transition"
             >
-              {showPassword ? (
-                <FaEye className="w-5 h-5" />
-              ) : (
-                <FaEyeSlash className="w-5 h-5" />
-              )}
-            </span>
+              Ingresar
+            </button>
           </div>
         </div>
-        {error && (
-          <div className="w-full text-center text-red-600 font-bold mb-2">
-            {error}
-          </div>
-        )}
-        <div className="w-full flex justify-center items-center mt-2">
-          <button
-            onClick={login}
-            className="bg-[#0D6EFD] hover:bg-[#0d81fd] px-10 py-2 rounded-lg font-bold text-lg text-white shadow transition"
-          >
-            Ingresar
-          </button>
+        <div className="text-white absolute bottom-1 text-xs lg:text-sm text-center w-full">
+          <p>
+            ©2024-2027 Rentame Carmen - Sistema para la gestión de rentas
+          </p>
         </div>
       </div>
-      <div className="text-white absolute bottom-1 text-xs lg:text-sm text-center w-full">
-        <p>
-          ©2024-2027 Rentame Carmen - Sistema para la gestión de rentas
-        </p>
-      </div>
-    </div>
+    </LoginErrorBoundary>
   );
 }
