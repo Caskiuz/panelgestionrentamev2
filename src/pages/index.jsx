@@ -24,10 +24,18 @@ export default function Index() {
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
   useEffect(() => {
-    // Inicializar tooltips bootstrap si existen
-    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new window.bootstrap.Tooltip(tooltipTriggerEl));
-    return () => tooltipList.forEach(tooltip => tooltip.dispose());
+    // Inicializar tooltips bootstrap si existen, pero solo si window.bootstrap está disponible
+    try {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+      if (window.bootstrap && window.bootstrap.Tooltip) {
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new window.bootstrap.Tooltip(tooltipTriggerEl));
+        return () => tooltipList.forEach(tooltip => tooltip.dispose());
+      } else {
+        console.warn('[Login] Bootstrap no está disponible en window.bootstrap. Tooltips deshabilitados.');
+      }
+    } catch (e) {
+      console.error('[Login] Error inicializando tooltips Bootstrap:', e);
+    }
   }, [showPassword]);
 
   async function login() {
